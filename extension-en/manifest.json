@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "English Collector",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting", "storage", "contextMenus"],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "background": {
+    "service_worker": "./Sentences_controllers.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": [
+        "js/getCaptions.js"
+      ]
+    }
+  ],
+  "commands": {
+    "save-word": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+H",
+        "mac": "Command+Shift+H"
+      },
+      "description": "Salva a palavra selecionada"
+    }
+  }
+}

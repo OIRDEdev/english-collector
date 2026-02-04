@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Collector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-icon">📚</div>
+        <div class="header-content">
+            <h1>English Collector</h1>
+            <p>Capture sentences from streaming</p>
+        </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-icon">📝</div>
+            <div class="stat-info">
+                <span class="stat-value" id="total-sentences">0</span>
+                <span class="stat-label">Sentences</span>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon">🎬</div>
+            <div class="stat-info">
+                <span class="stat-value" id="streaming-source">--</span>
+                <span class="stat-label">Source</span>
+            </div>
+        </div>
+        <div class="stat-item" id="sync-status">
+            <div class="stat-icon" id="sync-icon">☁️</div>
+            <div class="stat-info">
+                <span class="stat-value" id="sync-count">--</span>
+                <span class="stat-label">Synced</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+        <button id="getCaptions" class="btn btn-secondary">
+            <span>🎯</span> Capture
+        </button>
+        <button id="save-words" class="btn btn-primary">
+            <span>📥</span> Load
+        </button>
+        <button id="sync-btn" class="btn btn-secondary">
+            <span>🔄</span> Sync
+        </button>
+        <button id="clear-all" class="btn btn-secondary">
+            <span>🗑️</span> Clear
+        </button>
+    </div>
+
+    <!-- Sentences List -->
+    <div class="sentences-container">
+        <div class="section-title">Captured Sentences</div>
+        <ul id="sentences">
+            <!-- Sentence cards will be inserted here -->
+        </ul>
+        
+        <!-- Empty State -->
+        <div class="empty-state" id="empty-state">
+            <div class="empty-icon">🎬</div>
+            <div class="empty-title">No sentences yet</div>
+            <div class="empty-description">
+                Go to a streaming service (YouTube, Netflix, etc.) and click on subtitles to capture sentences.
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span>✅</span>
+        <span id="toast-message">Action completed!</span>
+    </div>
+
+    <script src="js/popup_handler.js"></script>
+</body>
+</html>
