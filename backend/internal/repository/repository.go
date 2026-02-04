@@ -10,17 +10,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// PhraseRepository handles phrase data access
+
 type PhraseRepository struct {
 	db *pgxpool.Pool
 }
-
-// NewPhraseRepository creates a new phrase repository
 func NewPhraseRepository(db *pgxpool.Pool) *PhraseRepository {
 	return &PhraseRepository{db: db}
 }
 
-// Create inserts a new phrase into the database
+
 func (r *PhraseRepository) Create(ctx context.Context, phrase *models.Phrase) error {
 	query := `
 		INSERT INTO phrases (id, user_id, content, source, context, created_at, updated_at)
@@ -45,7 +43,7 @@ func (r *PhraseRepository) Create(ctx context.Context, phrase *models.Phrase) er
 	return nil
 }
 
-// GetByID retrieves a phrase by its ID
+
 func (r *PhraseRepository) GetByID(ctx context.Context, id string) (*models.Phrase, error) {
 	query := `
 		SELECT id, user_id, content, source, context, created_at, updated_at
@@ -68,7 +66,7 @@ func (r *PhraseRepository) GetByID(ctx context.Context, id string) (*models.Phra
 	return &phrase, nil
 }
 
-// GetByUserID retrieves all phrases for a user
+
 func (r *PhraseRepository) GetByUserID(ctx context.Context, userID string) ([]models.Phrase, error) {
 	query := `
 		SELECT id, user_id, content, source, context, created_at, updated_at
@@ -102,7 +100,7 @@ func (r *PhraseRepository) GetByUserID(ctx context.Context, userID string) ([]mo
 	return phrases, nil
 }
 
-// GetAll retrieves all phrases
+
 func (r *PhraseRepository) GetAll(ctx context.Context) ([]models.Phrase, error) {
 	query := `
 		SELECT id, user_id, content, source, context, created_at, updated_at
@@ -135,7 +133,7 @@ func (r *PhraseRepository) GetAll(ctx context.Context) ([]models.Phrase, error) 
 	return phrases, nil
 }
 
-// Update updates an existing phrase
+
 func (r *PhraseRepository) Update(ctx context.Context, phrase *models.Phrase) error {
 	query := `
 		UPDATE phrases
@@ -157,7 +155,7 @@ func (r *PhraseRepository) Update(ctx context.Context, phrase *models.Phrase) er
 	return nil
 }
 
-// Delete removes a phrase by its ID
+
 func (r *PhraseRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM phrases WHERE id = $1`
 	_, err := r.db.Exec(ctx, query, id)
@@ -167,17 +165,15 @@ func (r *PhraseRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// UserRepository handles user data access
+
 type UserRepository struct {
 	db *pgxpool.Pool
 }
-
-// NewUserRepository creates a new user repository
 func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-// Create inserts a new user into the database
+
 func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	query := `
 		INSERT INTO users (id, email, username, created_at, updated_at)
@@ -200,7 +196,7 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-// GetByID retrieves a user by their ID
+
 func (r *UserRepository) GetByID(ctx context.Context, id string) (*models.User, error) {
 	query := `
 		SELECT id, email, username, created_at, updated_at
@@ -221,7 +217,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*models.User, 
 	return &user, nil
 }
 
-// GetByEmail retrieves a user by their email
+
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
 		SELECT id, email, username, created_at, updated_at
@@ -242,7 +238,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 	return &user, nil
 }
 
-// GetAll retrieves all users
+
 func (r *UserRepository) GetAll(ctx context.Context) ([]models.User, error) {
 	query := `
 		SELECT id, email, username, created_at, updated_at
@@ -273,7 +269,7 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]models.User, error) {
 	return users, nil
 }
 
-// Update updates an existing user
+
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	query := `
 		UPDATE users
@@ -294,7 +290,7 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-// Delete removes a user by their ID
+
 func (r *UserRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := r.db.Exec(ctx, query, id)
