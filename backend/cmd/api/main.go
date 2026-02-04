@@ -13,11 +13,13 @@ import (
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/phrase"
 	"extension-backend/internal/user"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	dbConfig := database.LoadConfig()
-	db, err := database.Connect(dbConfig)
+	godotenv.Load()
+	db, err := database.Connect()
 	if err != nil {
 		log.Printf("Warning: Could not connect to database: %v", err)
 		log.Println("Running without database connection...")

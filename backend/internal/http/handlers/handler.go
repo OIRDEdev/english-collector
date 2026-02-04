@@ -9,16 +9,16 @@ import (
 )
 
 type Handler struct {
-	userService   *user.Service
-	phraseService *phrase.Service
-	groupService  *group.Service
+	userService   user.ServiceInterface
+	phraseService phrase.ServiceInterface
+	groupService  group.ServiceInterface
 	tokenService  *user.TokenService
 }
 
 func NewHandler(
-	userService *user.Service,
-	phraseService *phrase.Service,
-	groupService *group.Service,
+	userService user.ServiceInterface,
+	phraseService phrase.ServiceInterface,
+	groupService group.ServiceInterface,
 	tokenService *user.TokenService,
 ) *Handler {
 	return &Handler{
