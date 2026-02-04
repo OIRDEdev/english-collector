@@ -15,23 +15,23 @@ import (
 )
 
 func main() {
-	// Load database configuration and connect
+	
 	dbConfig := database.LoadConfig()
 	_, err := database.Connect(dbConfig)
 	if err != nil {
-		log.Printf("⚠️  Warning: Could not connect to database: %v", err)
-		log.Println("📝 Running without database connection...")
+		log.Printf("Warning: Could not connect to database: %v", err)
+		log.Println("Running without database connection...")
 	} else {
 		defer database.Close()
 	}
 
-	// Get port from environment
+	
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Create Chi router
+	
 	r := chi.NewRouter()
 
 	// Middleware stack
@@ -45,24 +45,24 @@ func main() {
 	handler := handlers.NewHandler()
 	handler.RegisterRoutes(r)
 
-	// Graceful shutdown
+	
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
-		log.Println("\n🛑 Shutting down server...")
+		log.Println("\nShutting down server...")
 		database.Close()
 		os.Exit(0)
 	}()
 
-	// Start server
-	log.Printf("🚀 Server starting on port %s", port)
+	
+	log.Printf("Server starting on port %s", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("❌ Server failed to start: %v", err)
+		log.Fatalf("Server failed to start: %v", err)
 	}
 }
 
-// corsMiddleware adds CORS headers to responses
+
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

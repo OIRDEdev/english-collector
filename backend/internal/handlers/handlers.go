@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Response represents a standard API response
 type Response struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
@@ -19,21 +18,20 @@ type Handler struct {
 	// Add service dependencies here
 }
 
-// NewHandler creates a new Handler instance
 func NewHandler() *Handler {
 	return &Handler{}
 }
 
-// RegisterRoutes registers all routes with the Chi router
+
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	// Health check
+	
 	r.Get("/health", h.HealthCheck)
 
-	// API v1 routes
+	
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/", h.Welcome)
 
-		// Phrases routes
+		
 		r.Route("/phrases", func(r chi.Router) {
 			r.Get("/", h.ListPhrases)
 			r.Post("/", h.CreatePhrase)
@@ -42,7 +40,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Delete("/{id}", h.DeletePhrase)
 		})
 
-		// Users routes
+		
 		r.Route("/users", func(r chi.Router) {
 			r.Get("/", h.ListUsers)
 			r.Post("/", h.CreateUser)
@@ -53,7 +51,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	})
 }
 
-// HealthCheck returns the health status of the API
+
 func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	SendJSON(w, http.StatusOK, Response{
 		Success: true,
@@ -61,7 +59,7 @@ func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Welcome returns a welcome message
+
 func (h *Handler) Welcome(w http.ResponseWriter, r *http.Request) {
 	SendJSON(w, http.StatusOK, Response{
 		Success: true,
@@ -72,7 +70,7 @@ func (h *Handler) Welcome(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Phrase handlers (placeholders)
+
 func (h *Handler) ListPhrases(w http.ResponseWriter, r *http.Request) {
 	SendJSON(w, http.StatusOK, Response{Success: true, Message: "List phrases"})
 }
@@ -96,7 +94,6 @@ func (h *Handler) DeletePhrase(w http.ResponseWriter, r *http.Request) {
 	SendJSON(w, http.StatusOK, Response{Success: true, Message: "Phrase deleted", Data: map[string]string{"id": id}})
 }
 
-// User handlers (placeholders)
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	SendJSON(w, http.StatusOK, Response{Success: true, Message: "List users"})
 }
@@ -120,14 +117,12 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	SendJSON(w, http.StatusOK, Response{Success: true, Message: "User deleted", Data: map[string]string{"id": id}})
 }
 
-// SendJSON sends a JSON response with the given status code
 func SendJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(data)
 }
 
-// SendError sends an error response
 func SendError(w http.ResponseWriter, statusCode int, message string) {
 	SendJSON(w, statusCode, Response{
 		Success: false,

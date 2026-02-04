@@ -12,7 +12,7 @@ import (
 
 var DB *pgxpool.Pool
 
-// Config holds database configuration
+
 type Config struct {
 	Host     string
 	Port     string
@@ -22,7 +22,7 @@ type Config struct {
 	SSLMode  string
 }
 
-// LoadConfig loads database configuration from environment variables
+
 func LoadConfig() *Config {
 	return &Config{
 		Host:     getEnv("DB_HOST", "localhost"),
@@ -34,7 +34,7 @@ func LoadConfig() *Config {
 	}
 }
 
-// Connect establishes a connection pool to the PostgreSQL database
+
 func Connect(cfg *Config) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -71,7 +71,7 @@ func Connect(cfg *Config) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-// Close closes the database connection pool
+
 func Close() {
 	if DB != nil {
 		DB.Close()
@@ -79,7 +79,7 @@ func Close() {
 	}
 }
 
-// GetPool returns the database connection pool
+
 func GetPool() *pgxpool.Pool {
 	return DB
 }
