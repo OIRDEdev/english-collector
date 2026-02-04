@@ -10,18 +10,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var DB *pgxpool.Pool
-
+var pool *pgxpool.Pool
 
 type Config struct {
 	Host     string
-	Port     string
+	Port     string	
 	User     string
 	Password string
 	DBName   string
 	SSLMode  string
 }
-
 
 func LoadConfig() *Config {
 	return &Config{
@@ -34,7 +32,6 @@ func LoadConfig() *Config {
 	}
 }
 
-
 func Connect(cfg *Config) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -43,45 +40,39 @@ func Connect(cfg *Config) (*pgxpool.Pool, error) {
 
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse database config: %w", err)
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	// Pool configuration
 	config.MaxConns = 25
 	config.MinConns = 5
 	config.MaxConnLifetime = time.Hour
 	config.MaxConnIdleTime = 30 * time.Minute
-	config.HealthCheckPeriod = time.Minute
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	pool, err := pgxpool.NewWithConfig(ctx, config)
+	pool, err = pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+		return nil, fmt.Errorf("failed to create pool: %w", err)
 	}
 
-	// Test the connection
 	if err := pool.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("failed to ping: %w", err)
 	}
 
-	log.Println("✅ Connected to PostgreSQL database")
-	DB = pool
+	log.Println("Connected to PostgreSQL")
 	return pool, nil
 }
 
-
 func Close() {
-	if DB != nil {
-		DB.Close()
-		log.Println("🔌 Database connection closed")
+	if pool != nil {
+		pool.Close()
+		log.Println("Database connection closed")
 	}
 }
 
-
 func GetPool() *pgxpool.Pool {
-	return DB
+	return pool
 }
 
 func getEnv(key, defaultValue string) string {
