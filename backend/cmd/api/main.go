@@ -8,16 +8,16 @@ import (
 	"syscall"
 
 	"extension-backend/internal/database"
-	"extension-backend/internal/handlers"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"extension-backend/internal/group"
+	apphttp "extension-backend/internal/http"
+	"extension-backend/internal/http/handlers"
+	"extension-backend/internal/phrase"
+	"extension-backend/internal/user"
 )
 
 func main() {
-	
 	dbConfig := database.LoadConfig()
-	_, err := database.Connect(dbConfig)
+	db, err := database.Connect(dbConfig)
 	if err != nil {
 		log.Printf("Warning: Could not connect to database: %v", err)
 		log.Println("Running without database connection...")
@@ -25,27 +25,31 @@ func main() {
 		defer database.Close()
 	}
 
-	
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	
-	r := chi.NewRouter()
+	// Initialize repositories
+	userRepo := user.NewRepository(db)
+	refreshTokenRepo := user.NewRefreshTokenRepository(db)
+	phraseRepo := phrase.NewRepository(db)
+	groupRepo := group.NewRepository(db)
 
-	// Middleware stack
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(corsMiddleware)
+	// Initialize services
+	tokenService := user.NewTokenService()
+	userService := user.NewService(userRepo, refreshTokenRepo, tokenService)
+	phraseService := phrase.NewService(phraseRepo)
+	groupService := group.NewService(groupRepo)
 
-	// Register routes
-	handler := handlers.NewHandler()
-	handler.RegisterRoutes(r)
+	// Initialize handler
+	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService)
 
-	
+	// Setup router
+	r := apphttp.NewRouter()
+	apphttp.RegisterRoutes(r, handler)
+
+	// Graceful shutdown
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -55,25 +59,8 @@ func main() {
 		os.Exit(0)
 	}()
 
-	
 	log.Printf("Server starting on port %s", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
-}
-
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
