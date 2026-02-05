@@ -33,9 +33,10 @@ Thumbs.db
 # Logs
 *.log
 logs/
-
+*.sql
 # Temporary files
 tmp/
 temp/
 
 # PolyglotFlow
+node_modules/
