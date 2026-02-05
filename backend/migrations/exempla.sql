@@ -1,3 +1,4 @@
+
 -- ==========================================
 -- 1. TABELA DE USUÁRIOS
 -- ==========================================
@@ -146,3 +147,37 @@ CREATE TABLE logs_ia (
     CONSTRAINT fk_log_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     CONSTRAINT fk_log_frase FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE
 );
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- 1. Inserir Usuário de Teste (Senha: 'senha123' - hash simulado)
+INSERT INTO usuarios (nome, email, senha_hash, token_extensao) 
+VALUES ('Edrio', 'edrio@exemplo.com', '$$2a$13$cohNhJcAsLcQswiMIT1vX.lJ6uXsOBYXCbASYNmvmjd.izAkyMRl.', 'token');
+
+-- 2. Configurar Preferências do Usuário
+INSERT INTO preferencias_usuario (usuario_id, idioma_padrao_traducao, auto_traduzir, tema_interface)
+VALUES (1, 'pt-BR', TRUE, 'dark');
+
+-- 3. Criar Grupos de Estudo
+INSERT INTO grupos (usuario_id, nome_grupo, descricao, cor_etiqueta)
+VALUES 
+(1, 'Programação Go', 'Frases sobre desenvolvimento em Go', '#00ADD8'),
+(1, 'Expressões em Inglês', 'Gírias e phrasal verbs', '#FFD700');
+
+-- 4. Inserir uma Frase capturada pela extensão
+INSERT INTO frases (usuario_id, conteudo, idioma_origem, url_origem, titulo_pagina)
+VALUES (1, 'I don''t wanna go home yet', 'en', 'https://lingua.com/english', 'Study Page');
+
+-- 5. Simular o retorno da IA (JSONB com as fatias)
+INSERT INTO frase_detalhes (frase_id, traducao_completa, explicacao, fatias_traducoes, modelo_ia)
+VALUES (1, 
+    'Eu não quero ir para casa ainda', 
+    'A frase usa a contração informal "wanna" (want to).', 
+    '{
+        "I don''t": "Eu não",
+        "wanna": "quero (querer)",
+        "go home": "ir para casa",
+        "yet": "ainda"
+    }'::jsonb, 
+    'gemini-1.5-flash');
+
+-- 6. Vincular a frase ao grupo de Inglês
+INSERT INTO frase_grupos (frase_id, grupo_id) VALUES (1, 2);
