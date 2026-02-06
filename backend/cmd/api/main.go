@@ -7,10 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"extension-backend/internal/ai"
 	"extension-backend/internal/database"
 	"extension-backend/internal/group"
 	apphttp "extension-backend/internal/http"
 	"extension-backend/internal/http/handlers"
+	"extension-backend/internal/http/middleware"
 	"extension-backend/internal/phrase"
 	"extension-backend/internal/user"
 
@@ -44,12 +46,22 @@ func main() {
 	phraseService := phrase.NewService(phraseRepo)
 	groupService := group.NewService(groupRepo)
 
+	// Initialize AI service
+	var aiMiddleware *middleware.AIMiddleware
+	aiService, err := ai.NewService()
+	if err != nil {
+		log.Printf("Warning: AI service not available: %v", err)
+	} else {
+		aiMiddleware = middleware.NewAIMiddleware(aiService, phraseService)
+		log.Println("AI translation service enabled")
+	}
+
 	// Initialize handler
 	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService)
 
 	// Setup router
 	r := apphttp.NewRouter()
-	apphttp.RegisterRoutes(r, handler)
+	apphttp.RegisterRoutes(r, handler, aiMiddleware)
 
 	// Graceful shutdown
 	go func() {

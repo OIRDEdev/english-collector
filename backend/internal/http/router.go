@@ -1,6 +1,8 @@
 package http
 
 import (
+	"net/http"
+
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/http/middleware"
 
@@ -20,7 +22,7 @@ func NewRouter() chi.Router {
 	return r
 }
 
-func RegisterRoutes(r chi.Router, h *handlers.Handler) {
+func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.AIMiddleware) {
 	r.Get("/health", h.HealthCheck)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -28,10 +30,16 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler) {
 
 		r.Route("/phrases", func(r chi.Router) {
 			r.Get("/", h.ListPhrases)
-			r.Post("/", h.CreatePhrase)
 			r.Get("/{id}", h.GetPhrase)
-			r.Put("/{id}", h.UpdatePhrase)
 			r.Delete("/{id}", h.DeletePhrase)
+
+			if aiMiddleware != nil {
+				r.With(aiMiddleware.ProcessTranslation).Post("/", h.CreatePhrase)
+				r.With(aiMiddleware.ProcessTranslation).Put("/{id}", h.UpdatePhrase)
+			} else {
+				r.Post("/", h.CreatePhrase)
+				r.Put("/{id}", h.UpdatePhrase)
+			}
 		})
 
 		r.Route("/users", func(r chi.Router) {
@@ -56,4 +64,13 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler) {
 			r.Delete("/{id}", h.DeleteGroup)
 		})
 	})
+}
+
+func wrapWithAI(aiMiddleware *middleware.AIMiddleware, handler http.HandlerFunc) http.HandlerFunc {
+	if aiMiddleware == nil {
+		return handler
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		aiMiddleware.ProcessTranslation(handler).ServeHTTP(w, r)
+	}
 }

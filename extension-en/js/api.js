@@ -123,22 +123,35 @@ class ApiClient {
     /**
      * Envia uma frase para o backend
      * @param {string} text - Texto da frase
-     * @param {string} streamingName - Nome do streaming
+     * @param {string} urlOrigem - URL de origem da frase
+     * @param {string} tituloPagina - Título da página
+     * @param {string} context - Contexto adicional da frase
+     * @param {number} usuarioId - ID do usuário (opcional)
      * @returns {Promise<Object>}
      */
-    async addPhrase(text, streamingName) {
+    async addPhrase(text, urlOrigem = "", tituloPagina = "", context = null, usuarioId = 1) {
         if (!text || text.trim() === "" || text === this.lastPhrase) {
             return { success: false, reason: "empty_or_duplicate" };
         }
 
         try {
+            const body = {
+                usuario_id: usuarioId,
+                conteudo: text.trim(),
+                idioma_origem: "en",
+                url_origem: urlOrigem,
+                titulo_pagina: tituloPagina
+            };
+
+            // Adiciona contexto se disponível
+            if (context) {
+                body.contexto = context;
+            }
+
             const result = await this.call({
                 method: "POST",
-                endpoint: "frase",
-                body: {
-                    texto: text.trim(),
-                    streaming: { nome: streamingName || "Unknown" }
-                }
+                endpoint: "api/v1/phrases",
+                body: body
             });
 
             this.lastPhrase = text;
@@ -152,17 +165,16 @@ class ApiClient {
 
     /**
      * Busca frases do backend
-     * @param {Object} options - Opções de busca
      * @returns {Promise<Array>}
      */
-    async getPhrases(options = { take: 50 }) {
+    async getPhrases() {
         try {
             const result = await this.call({
                 method: "GET",
-                endpoint: `frase?take=${options.take}`
+                endpoint: "api/v1/phrases"
             });
 
-            return result.result || [];
+            return result.data || [];
         } catch (error) {
             console.error("[API] Failed to get phrases:", error);
             return [];
@@ -170,15 +182,58 @@ class ApiClient {
     }
 
     /**
+     * Busca uma frase pelo ID
+     * @param {number} id - ID da frase
+     * @returns {Promise<Object|null>}
+     */
+    async getPhrase(id) {
+        try {
+            const result = await this.call({
+                method: "GET",
+                endpoint: `api/v1/phrases/${id}`
+            });
+
+            return result.data || null;
+        } catch (error) {
+            console.error("[API] Failed to get phrase:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Atualiza uma frase
+     * @param {number} id - ID da frase
+     * @param {Object} data - Dados para atualizar
+     * @returns {Promise<Object|null>}
+     */
+    async updatePhrase(id, data) {
+        try {
+            const result = await this.call({
+                method: "PUT",
+                endpoint: `api/v1/phrases/${id}`,
+                body: {
+                    conteudo: data.conteudo,
+                    idioma_origem: data.idioma_origem
+                }
+            });
+
+            return result.data || null;
+        } catch (error) {
+            console.error("[API] Failed to update phrase:", error);
+            return null;
+        }
+    }
+
+    /**
      * Deleta uma frase do backend
-     * @param {string} id - ID da frase
+     * @param {number} id - ID da frase
      * @returns {Promise<boolean>}
      */
     async deletePhrase(id) {
         try {
             await this.call({
                 method: "DELETE",
-                endpoint: `frase/${id}`
+                endpoint: `api/v1/phrases/${id}`
             });
             return true;
         } catch (error) {
