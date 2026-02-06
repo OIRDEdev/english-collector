@@ -88,8 +88,53 @@ function createSentenceCard(sentence) {
     const timeFormatted = formatTime(sentence.timestamp);
     const syncStatus = sentence.synced ? '✅' : '⏳';
     
+    // Determina o estado da tradução
+    let translationContent = '';
+    if (!sentence.synced) {
+        translationContent = `
+            <div class="translation-not-sent">
+                <span>⚠️</span>
+                <span>Frase não enviada</span>
+            </div>
+        `;
+    } else if (sentence.translation) {
+        // Tradução recebida
+        let explanationHtml = '';
+        if (sentence.explanation) {
+            explanationHtml = `
+                <div class="translation-explanation">
+                    <span class="explanation-label">💡</span>
+                    <span>${escapeHtml(sentence.explanation)}</span>
+                </div>
+            `;
+        }
+        translationContent = `
+            <div class="translation-main translation-loaded">
+                <span class="translation-label">🌐</span>
+                <span class="translation-text">${escapeHtml(sentence.translation)}</span>
+            </div>
+            ${explanationHtml}
+        `;
+    } else if (sentence.translationPending) {
+        // Aguardando tradução da IA
+        translationContent = `
+            <div class="translation-loading">
+                <span class="loading-spinner"></span>
+                <span>Traduzindo...</span>
+            </div>
+        `;
+    } else {
+        // Sincronizado mas sem tradução ainda
+        translationContent = `
+            <div class="translation-loading">
+                <span class="loading-spinner"></span>
+                <span>Aguardando tradução...</span>
+            </div>
+        `;
+    }
+    
     return `
-        <li class="sentence-card ${sentence.synced ? 'synced' : 'pending'}" data-key="${sentence.key}">
+        <li class="sentence-card ${sentence.synced ? 'synced' : 'pending'}" data-key="${sentence.key}" data-phrase-id="${sentence.phraseId || ''}">
             <div class="sentence-header">
                 <span class="streaming-badge ${streamingClass}">
                     🎬 ${sentence.source || 'Unknown'}
@@ -100,6 +145,9 @@ function createSentenceCard(sentence) {
                 </div>
             </div>
             <div class="sentence-text">${escapeHtml(sentence.text)}</div>
+            <div class="translation-content">
+                ${translationContent}
+            </div>
         </li>
     `;
 }
@@ -291,5 +339,77 @@ elements.saveWordsBtn.addEventListener('click', () => {
 elements.syncBtn.addEventListener('click', syncPending);
 elements.clearAllBtn.addEventListener('click', clearAllSentences);
 
+// Listen for translation notifications from service worker
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type !== 'popup-notification') return;
+
+    switch (message.event) {
+        case 'translation-received':
+            console.log('[Popup] Translation received:', message.data);
+            updateCardWithTranslation(message.data);
+            break;
+
+        case 'translation-error':
+            console.log('[Popup] Translation error:', message.data);
+            updateCardWithError(message.data);
+            break;
+    }
+});
+
+/**
+ * Atualiza card com tradução recebida
+ * @param {Object} data - Dados da tradução
+ */
+function updateCardWithTranslation(data) {
+    const card = document.querySelector(`[data-phrase-id="${data.phrase_id}"]`);
+    if (!card) {
+        console.log('[Popup] Card not found for phrase:', data.phrase_id);
+        return;
+    }
+
+    const translationDiv = card.querySelector('.translation-content');
+    if (!translationDiv) return;
+
+    let html = `
+        <div class="translation-main">
+            <span class="translation-label">🌐</span>
+            <span class="translation-text">${escapeHtml(data.traducao_completa)}</span>
+        </div>
+    `;
+
+    if (data.explicacao) {
+        html += `
+            <div class="translation-explanation">
+                <span class="explanation-label">💡</span>
+                <span>${escapeHtml(data.explicacao)}</span>
+            </div>
+        `;
+    }
+
+    translationDiv.innerHTML = html;
+    translationDiv.classList.add('translation-loaded');
+    showToast("Tradução recebida!", "success");
+}
+
+/**
+ * Atualiza card com erro de tradução
+ * @param {Object} data - Dados do erro
+ */
+function updateCardWithError(data) {
+    const card = document.querySelector(`[data-phrase-id="${data.phrase_id}"]`);
+    if (!card) return;
+
+    const translationDiv = card.querySelector('.translation-content');
+    if (!translationDiv) return;
+
+    translationDiv.innerHTML = `
+        <div class="translation-error">
+            <span>❌</span>
+            <span>Erro ao traduzir</span>
+        </div>
+    `;
+}
+
 // Load sentences on popup open
 document.addEventListener('DOMContentLoaded', loadSentences);
+

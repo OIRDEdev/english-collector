@@ -65,7 +65,10 @@ class DatabaseManager {
             pageTitle: pageTitle || document?.title || "",
             timestamp: Date.now(),
             date: new Date().toISOString(),
-            synced: false
+            synced: false,
+            phraseId: null,
+            translationPending: false,
+            translation: null
         };
 
         // 1. Salva localmente primeiro (para exibição imediata)
@@ -91,10 +94,14 @@ class DatabaseManager {
                     context
                 );
                 
-                if (apiResult.success) {
-                    // Marca como sincronizado
+                if (apiResult.success && apiResult.phraseId) {
+                    // Marca como sincronizado com phraseId e aguardando tradução
+                    await this.markAsSynced(key, apiResult.phraseId);
+                    await this.markAsTranslationPending(key, apiResult.phraseId);
+                    console.log("[DB] Synced with backend, phraseId:", apiResult.phraseId);
+                } else if (apiResult.success) {
                     await this.markAsSynced(key);
-                    console.log("[DB] Synced with backend");
+                    console.log("[DB] Synced without phraseId");
                 } else {
                     console.warn("[DB] Backend sync failed:", apiResult.reason || apiResult.error);
                 }
@@ -108,16 +115,38 @@ class DatabaseManager {
     }
 
     /**
+     * Marca uma frase como aguardando tradução
+     * @param {string} key - Chave da entrada
+     * @param {number} phraseId - ID da frase no backend
+     */
+    async markAsTranslationPending(key, phraseId) {
+        const data = await chrome.storage.local.get(this.storageKey);
+        const db = data[this.storageKey] || {};
+        
+        if (db[key]) {
+            db[key].translationPending = true;
+            db[key].phraseId = phraseId;
+            await chrome.storage.local.set({ [this.storageKey]: db });
+            console.log(`[DB] Marked as translation pending: ${key}, phraseId: ${phraseId}`);
+        }
+    }
+
+    /**
      * Marca uma entrada como sincronizada
      * @param {string} key - Chave da entrada
+     * @param {number} phraseId - ID da frase no backend (opcional)
      */
-    async markAsSynced(key) {
+    async markAsSynced(key, phraseId = null) {
         const data = await chrome.storage.local.get(this.storageKey);
         const db = data[this.storageKey] || {};
         
         if (db[key]) {
             db[key].synced = true;
+            if (phraseId) {
+                db[key].phraseId = phraseId;
+            }
             await chrome.storage.local.set({ [this.storageKey]: db });
+            console.log(`[DB] Marked as synced: ${key}, phraseId: ${phraseId}`);
         }
     }
 
@@ -236,7 +265,13 @@ class DatabaseManager {
                     item.pageTitle || "", 
                     item.context
                 );
-                if (result.success) {
+                
+                if (result.success && result.phraseId) {
+                    // Usa phraseId direto da resposta
+                    await this.markAsSynced(item.key, result.phraseId);
+                    await this.markAsTranslationPending(item.key, result.phraseId);
+                    synced++;
+                } else if (result.success) {
                     await this.markAsSynced(item.key);
                     synced++;
                 } else {
@@ -249,6 +284,50 @@ class DatabaseManager {
 
         console.log(`[DB] Sync complete: ${synced} synced, ${failed} failed`);
         return { success: true, synced, failed, total: unsynced.length };
+    }
+
+    /**
+     * Atualiza uma frase com a tradução recebida
+     * @param {number} phraseId - ID da frase no backend
+     * @param {string} translation - Texto da tradução
+     * @param {string} explanation - Explicação (opcional)
+     * @returns {Promise<boolean>}
+     */
+    async updateWithTranslation(phraseId, translation, explanation = null) {
+        const data = await chrome.storage.local.get(this.storageKey);
+        const db = data[this.storageKey] || {};
+
+        for (const key in db) {
+            if (db[key].phraseId === phraseId) {
+                db[key].translation = translation;
+                db[key].explanation = explanation;
+                db[key].translationPending = false;
+                await chrome.storage.local.set({ [this.storageKey]: db });
+                console.log(`[DB] Translation saved for phraseId ${phraseId}`);
+                return true;
+            }
+        }
+
+        console.warn(`[DB] No sentence found for phraseId ${phraseId}`);
+        return false;
+    }
+
+    /**
+     * Busca frase pelo phraseId
+     * @param {number} phraseId 
+     * @returns {Promise<Object|null>}
+     */
+    async findByPhraseId(phraseId) {
+        const data = await chrome.storage.local.get(this.storageKey);
+        const db = data[this.storageKey] || {};
+
+        for (const key in db) {
+            if (db[key].phraseId === phraseId) {
+                return { key, ...db[key] };
+            }
+        }
+
+        return null;
     }
 }
 
