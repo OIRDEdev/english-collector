@@ -150,10 +150,22 @@ class SubtitleCollector {
         if (!sentence || !sentence.trim()) return;
 
         try {
+            // Importar GetContext dinamicamente se disponível
+            let context = null;
+            let pageTitle = document.title || "";
+            
+            if (typeof GetContext !== 'undefined') {
+                const ctx = GetContext.getContext();
+                context = GetContext.getFormattedContext();
+                pageTitle = ctx.title || pageTitle;
+            }
+            console.log("teste: ", context);
             chrome.runtime.sendMessage({
                 type: "addsentences",
                 sentences: sentence.trim(),
-                source: this.currentStreaming?.name || "unknown"
+                source: this.currentStreaming?.name || "unknown",
+                context: context,
+                pageTitle: pageTitle
             });
             console.log(`[SubtitleCollector] Frase enviada: "${sentence.trim()}"`);
         } catch (e) {

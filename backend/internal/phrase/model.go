@@ -9,6 +9,7 @@ type Phrase struct {
 	IdiomaOrigem string    `json:"idioma_origem"`
 	URLOrigem    string    `json:"url_origem,omitempty"`
 	TituloPagina string    `json:"titulo_pagina,omitempty"`
+	Contexto     string    `json:"contexto,omitempty"`
 	CapturadoEm  time.Time `json:"capturado_em"`
 }
 
@@ -28,11 +29,13 @@ type CreateInput struct {
 	IdiomaOrigem string `json:"idioma_origem"`
 	URLOrigem    string `json:"url_origem"`
 	TituloPagina string `json:"titulo_pagina"`
+	Contexto     string `json:"contexto"`
 }
 
 type UpdateInput struct {
 	Conteudo     string `json:"conteudo,omitempty"`
 	IdiomaOrigem string `json:"idioma_origem,omitempty"`
+	Contexto     string `json:"contexto,omitempty"`
 }
 
 type CreateDetailsInput struct {

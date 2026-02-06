@@ -40,17 +40,43 @@ function detectSourceFromUrl(url) {
 // Atalho de teclado (Ctrl+Shift+H)
 chrome.commands.onCommand.addListener((command) => {
     if (command !== "save-word") return;
-
+    console.log("teste: ", command);
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        // Injeta GetContext primeiro
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: () => window.getSelection().toString()
-        }, (result) => {
-            const sentence = result?.[0]?.result;
-            if (sentence) {
-                const source = detectSourceFromUrl(tab.url);
-                DB.add(sentence, source);
-            }
+            files: ["js/getcontext.js"]
+        }, () => {
+            console.log("teste 2: ", command);
+            // Depois executa a captura do texto e contexto
+            chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                    const selection = window.getSelection().toString();
+                    let context = null;
+                    let pageTitle = document.title || "";
+                    console.log("undefined context: ", typeof GetContext);
+                    if (typeof GetContext !== 'undefined') {
+                        try {
+                            const ctx = GetContext.getContext();
+                            context = GetContext.getFormattedContext();
+                            pageTitle = ctx.title || pageTitle;
+                            console.log("[Shortcut] Context:", context);
+                            console.log("[Shortcut] Page Title:", pageTitle);
+                        } catch (e) {
+                            console.warn("[Shortcut] Error getting context:", e);
+                        }
+                    }
+                    
+                    return { selection, context, pageTitle };
+                }
+            }, (result) => {
+                const data = result?.[0]?.result;
+                if (data?.selection) {
+                    const source = detectSourceFromUrl(tab.url);
+                    DB.add(data.selection, source, data.context, data.pageTitle);
+                }
+            });
         });
     });
 });
@@ -73,7 +99,12 @@ async function handleMessage(request, sender) {
     switch (request.type) {
         // === Operações de Frases ===
         case "addsentences":
-            const addResult = await DB.add(request.sentences, source);
+            const addResult = await DB.add(
+                request.sentences, 
+                source, 
+                request.context || null, 
+                request.pageTitle || ""
+            );
             return { success: addResult.success };
 
         case "getAllSentences":

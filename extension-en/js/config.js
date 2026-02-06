@@ -1,8 +1,6 @@
 const config = {
-    apiUrl: "https://localhost:44300",
-    siteUrlNoPort: "https://localhost:5001",
-    siteUrl: "https://localhost:5001",
-    clientId: "EnglishCollector"
+    apiUrl: "http://localhost:8080",
+    clientId: "PolyglotFlow"
 }
 
 export { config };

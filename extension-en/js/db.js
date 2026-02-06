@@ -48,9 +48,11 @@ class DatabaseManager {
      * Adiciona uma frase ao banco de dados e envia para o backend
      * @param {string} sentence - A frase capturada
      * @param {string} source - O streaming de origem
+     * @param {string} context - Contexto adicional (descrição, título do vídeo, etc)
+     * @param {string} pageTitle - Título da página
      * @returns {Promise<Object>} Resultado da operação
      */
-    async add(sentence, source = "Unknown") {
+    async add(sentence, source = "Unknown", context = null, pageTitle = "") {
         if (!sentence || !sentence.trim()) {
             return { success: false, reason: "empty" };
         }
@@ -59,6 +61,8 @@ class DatabaseManager {
         const entry = {
             text: sentence.trim(),
             source: source,
+            context: context,
+            pageTitle: pageTitle || document?.title || "",
             timestamp: Date.now(),
             date: new Date().toISOString(),
             synced: false
@@ -79,7 +83,13 @@ class DatabaseManager {
         // 2. Envia para o backend (se sincronização habilitada)
         if (this.syncEnabled && this.apiClient) {
             try {
-                const apiResult = await this.apiClient.addPhrase(sentence, source);
+                const urlOrigem = typeof window !== 'undefined' ? window.location?.href : "";
+                const apiResult = await this.apiClient.addPhrase(
+                    sentence, 
+                    urlOrigem, 
+                    pageTitle || entry.pageTitle, 
+                    context
+                );
                 
                 if (apiResult.success) {
                     // Marca como sincronizado
@@ -220,7 +230,12 @@ class DatabaseManager {
 
         for (const item of unsynced) {
             try {
-                const result = await this.apiClient.addPhrase(item.text, item.source);
+                const result = await this.apiClient.addPhrase(
+                    item.text, 
+                    "", 
+                    item.pageTitle || "", 
+                    item.context
+                );
                 if (result.success) {
                     await this.markAsSynced(item.key);
                     synced++;
