@@ -10,17 +10,20 @@ import (
 
 	"extension-backend/internal/ai"
 	"extension-backend/internal/phrase"
+	"extension-backend/internal/sse"
 )
 
 type AIMiddleware struct {
 	aiService     *ai.Service
 	phraseService phrase.ServiceInterface
+	sseHub        *sse.Hub
 }
 
-func NewAIMiddleware(aiService *ai.Service, phraseService phrase.ServiceInterface) *AIMiddleware {
+func NewAIMiddleware(aiService *ai.Service, phraseService phrase.ServiceInterface, sseHub *sse.Hub) *AIMiddleware {
 	return &AIMiddleware{
 		aiService:     aiService,
 		phraseService: phraseService,
+		sseHub:        sseHub,
 	}
 }
 
@@ -109,6 +112,16 @@ func (m *AIMiddleware) processAITranslation(conteudo, idiomaOrigem, idiomaDestin
 	})
 	if err != nil {
 		log.Printf("[AI] Translation failed for phrase %d: %v", phraseID, err)
+		// Broadcast error via SSE
+		if m.sseHub != nil {
+			m.sseHub.Broadcast(sse.Event{
+				Type: "translation_error",
+				Payload: map[string]interface{}{
+					"phrase_id": phraseID,
+					"error":     err.Error(),
+				},
+			})
+		}
 		return
 	}
 
@@ -125,4 +138,15 @@ func (m *AIMiddleware) processAITranslation(conteudo, idiomaOrigem, idiomaDestin
 	}
 
 	log.Printf("[AI] Translation saved for phrase %d", phraseID)
+
+	// Broadcast tradução via SSE
+	if m.sseHub != nil {
+		m.sseHub.BroadcastTranslation(
+			phraseID,
+			aiResponse.TraducaoCompleta,
+			aiResponse.Explicacao,
+			aiResponse.FatiasTraducoes,
+			aiResponse.ModeloIA,
+		)
+	}
 }

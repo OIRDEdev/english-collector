@@ -14,6 +14,7 @@ import (
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/http/middleware"
 	"extension-backend/internal/phrase"
+	"extension-backend/internal/sse"
 	"extension-backend/internal/user"
 
 	"github.com/joho/godotenv"
@@ -46,13 +47,18 @@ func main() {
 	phraseService := phrase.NewService(phraseRepo)
 	groupService := group.NewService(groupRepo)
 
+	// Initialize SSE Hub
+	sseHub := sse.NewHub()
+	sseHub.Run()
+	log.Println("SSE Hub started")
+
 	// Initialize AI service
 	var aiMiddleware *middleware.AIMiddleware
 	aiService, err := ai.NewService()
 	if err != nil {
 		log.Printf("Warning: AI service not available: %v", err)
 	} else {
-		aiMiddleware = middleware.NewAIMiddleware(aiService, phraseService)
+		aiMiddleware = middleware.NewAIMiddleware(aiService, phraseService, sseHub)
 		log.Println("AI translation service enabled")
 	}
 
@@ -61,7 +67,7 @@ func main() {
 
 	// Setup router
 	r := apphttp.NewRouter()
-	apphttp.RegisterRoutes(r, handler, aiMiddleware)
+	apphttp.RegisterRoutes(r, handler, aiMiddleware, sseHub)
 
 	// Graceful shutdown
 	go func() {
@@ -74,6 +80,7 @@ func main() {
 	}()
 
 	log.Printf("Server starting on port %s", port)
+	log.Printf("SSE endpoint: http://localhost:%s/api/v1/sse/translations", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}

@@ -155,8 +155,12 @@ class ApiClient {
             });
 
             this.lastPhrase = text;
-            console.log("[API] Phrase sent:", text.substring(0, 50) + "...");
-            return { success: true, data: result };
+            
+            // Extrai phraseId da resposta (formato: { data: { id: X, ... } })
+            const phraseId = result?.data?.id || result?.id || null;
+            
+            console.log("[API] Phrase sent:", text.substring(0, 50) + "... (ID:", phraseId, ")");
+            return { success: true, data: result, phraseId: phraseId };
         } catch (error) {
             console.error("[API] Failed to send phrase:", error);
             return { success: false, error };

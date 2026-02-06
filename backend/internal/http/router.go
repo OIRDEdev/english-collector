@@ -5,6 +5,7 @@ import (
 
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/http/middleware"
+	"extension-backend/internal/sse"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -22,8 +23,13 @@ func NewRouter() chi.Router {
 	return r
 }
 
-func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.AIMiddleware) {
+func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub) {
 	r.Get("/health", h.HealthCheck)
+
+	// SSE endpoint para receber traduções em tempo real
+	if sseHub != nil {
+		r.Get("/api/v1/sse/translations", sseHub.Handler())
+	}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/", h.Welcome)

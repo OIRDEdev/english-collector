@@ -13,6 +13,75 @@ api.loadSavedAuth().then(loaded => {
     }
 });
 
+// ==================== OFFSCREEN SSE MANAGEMENT ====================
+
+let creatingOffscreen = false;
+
+/**
+ * Verifica se o offscreen document existe
+ * @returns {Promise<boolean>}
+ */
+async function hasOffscreenDocument() {
+    const contexts = await chrome.runtime.getContexts({
+        contextTypes: ['OFFSCREEN_DOCUMENT']
+    });
+    return contexts.length > 0;
+}
+
+/**
+ * Cria o offscreen document se não existir
+ */
+async function setupOffscreen() {
+    if (await hasOffscreenDocument()) {
+        console.log("[Controller] Offscreen document already exists");
+        return;
+    }
+
+    if (creatingOffscreen) {
+        console.log("[Controller] Offscreen document creation in progress");
+        return;
+    }
+
+    creatingOffscreen = true;
+
+    try {
+        await chrome.offscreen.createDocument({
+            url: chrome.runtime.getURL("offscreen.html"),
+            reasons: ['BLOBS'],
+            justification: 'Maintains SSE connection for real-time translation updates'
+        });
+        console.log("[Controller] Offscreen document created for SSE");
+    } catch (err) {
+        console.error("[Controller] Failed to create offscreen document:", err);
+    } finally {
+        creatingOffscreen = false;
+    }
+}
+
+/**
+ * Envia mensagem para o offscreen document
+ * @param {string} type - Tipo da mensagem
+ * @param {Object} data - Dados da mensagem
+ */
+async function sendToOffscreen(type, data = {}) {
+    try {
+        await setupOffscreen();
+        return await chrome.runtime.sendMessage({
+            target: 'offscreen',
+            type,
+            ...data
+        });
+    } catch (err) {
+        console.warn("[Controller] Error sending to offscreen:", err);
+        return null;
+    }
+}
+
+// Inicia offscreen SSE na inicialização
+setupOffscreen();
+
+// ==================== UTILITY FUNCTIONS ====================
+
 /**
  * Detecta streaming pela URL
  * @param {string} url - URL da tab
@@ -36,6 +105,8 @@ function detectSourceFromUrl(url) {
     
     return "Unknown";
 }
+
+// ==================== KEYBOARD SHORTCUT ====================
 
 // Atalho de teclado (Ctrl+Shift+H)
 chrome.commands.onCommand.addListener((command) => {
@@ -81,11 +152,112 @@ chrome.commands.onCommand.addListener((command) => {
     });
 });
 
+// ==================== MESSAGE HANDLER ====================
+
 // Handler de mensagens
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // Ignora mensagens para offscreen
+    if (request.target === 'offscreen') return;
+
+    // Processa eventos do offscreen
+    if (request.type === 'offscreen-sse') {
+        handleOffscreenEvent(request);
+        return;
+    }
+
     handleMessage(request, sender).then(sendResponse);
     return true; // Mantém canal aberto para resposta assíncrona
 });
+
+/**
+ * Processa eventos vindos do offscreen SSE
+ * O Service Worker é quem tem acesso ao chrome.storage!
+ * @param {Object} event - Evento do offscreen
+ */
+async function handleOffscreenEvent(event) {
+    console.log("[Controller] Offscreen SSE event:", event.event, event.data);
+
+    switch (event.event) {
+        case 'sse-connected':
+            console.log("[Controller] SSE connected via offscreen");
+            break;
+
+        case 'sse-disconnected':
+            console.log("[Controller] SSE disconnected");
+            break;
+
+        case 'translation-received':
+            console.log("[Controller] Translation received via SSE:", event.data);
+            // Service Worker salva a tradução no storage
+            await saveTranslationToStorage(event.data);
+            // Notifica o popup (se estiver aberto)
+            notifyPopup('translation-received', event.data);
+            break;
+
+        case 'translation-error':
+            console.log("[Controller] Translation error via SSE:", event.data);
+            notifyPopup('translation-error', event.data);
+            break;
+
+        case 'sse-max-retries':
+            console.error("[Controller] SSE max retries reached, recreating offscreen");
+            // Tenta recriar o offscreen após um delay
+            setTimeout(setupOffscreen, 5000);
+            break;
+    }
+}
+
+/**
+ * Salva tradução no storage (apenas SW tem acesso!)
+ * @param {Object} data - Dados da tradução { phrase_id, traducao_completa, explicacao, ... }
+ */
+async function saveTranslationToStorage(data) {
+    const SENTENCES_KEY = 'my_db';
+
+    try {
+        const result = await chrome.storage.local.get(SENTENCES_KEY);
+        const db = result[SENTENCES_KEY] || {};
+
+        // Encontra a sentença pelo phraseId
+        let found = false;
+        for (const key in db) {
+            if (db[key].phraseId === data.phrase_id) {
+                db[key].translation = data.traducao_completa;
+                db[key].explanation = data.explicacao;
+                db[key].translationPending = false;
+                db[key].fatias_traducoes = data.fatias_traducoes;
+                db[key].modelo_ia = data.modelo_ia;
+                found = true;
+                console.log(`[Controller] Translation saved to sentence: ${key} (phraseId: ${data.phrase_id})`);
+                break;
+            }
+        }
+
+        if (found) {
+            await chrome.storage.local.set({ [SENTENCES_KEY]: db });
+        } else {
+            console.warn(`[Controller] No sentence found for phraseId: ${data.phrase_id}`);
+        }
+
+    } catch (err) {
+        console.error('[Controller] Error saving translation:', err);
+    }
+}
+
+/**
+ * Notifica o popup sobre eventos
+ * @param {string} type - Tipo do evento
+ * @param {Object} data - Dados do evento
+ */
+function notifyPopup(type, data) {
+    chrome.runtime.sendMessage({
+        type: 'popup-notification',
+        event: type,
+        data: data
+    }).catch(() => {
+        // Popup might be closed, ignore
+    });
+}
 
 /**
  * Processa mensagens de forma assíncrona
@@ -130,6 +302,25 @@ async function handleMessage(request, sender) {
         case "syncPending":
             const syncResult = await DB.syncPending();
             return syncResult;
+
+        // === Operações de SSE ===
+        case "getSSEStatus":
+            const sseStatus = await sendToOffscreen('status');
+            return sseStatus || { connected: false };
+
+        case "reconnectSSE":
+            await sendToOffscreen('connect');
+            return { success: true };
+
+        // === Operações de Traduções ===
+        case "getTranslation":
+            const translations = await chrome.storage.local.get('sse_translations');
+            const translation = translations.sse_translations?.[request.phraseId];
+            return { translation };
+
+        case "getAllTranslations":
+            const allTranslations = await chrome.storage.local.get('sse_translations');
+            return { translations: allTranslations.sse_translations || {} };
 
         // === Operações de Autenticação ===
         case "login":

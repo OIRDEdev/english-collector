@@ -2,7 +2,13 @@
   "manifest_version": 3,
   "name": "English Collector",
   "version": "1.0",
-  "permissions": ["activeTab", "scripting", "storage", "contextMenus"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "contextMenus",
+    "offscreen"
+  ],
   "action": {
     "default_popup": "index.html"
   },
