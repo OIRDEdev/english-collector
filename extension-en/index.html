@@ -1,88 +1,108 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Collector</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/sse.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/new_style.css">
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-icon">📚</div>
-        <div class="header-content">
+
+    <nav>
+        <div class="brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-color);"><path d="m5 8 6 6 6-6"/></svg>
             <h1>English Collector</h1>
-            <p>Capture sentences from streaming</p>
         </div>
-    </header>
+        <div class="nav-buttons">
+            <button id="nav-capture" class="nav-btn nav-capture-btn" title="Capturar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <button id="nav-list" data-tab="list" class="nav-btn active" title="Listar Frases">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
+            </button>
+            <button id="nav-sync" data-tab="sync" class="nav-btn" title="Sincronizar">
+                <!-- SVG substituído pelo do usuário -->
+                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.9375 6.11972C17.7862 7.39969 19 9.55585 19 12C19 15.9274 15.866 19.1111 12 19.1111C11.6411 19.1111 11.2885 19.0837 10.9441 19.0307M13.0149 4.96309C12.6836 4.9142 12.3447 4.88889 12 4.88889C8.13401 4.88889 5 8.07264 5 12C5 14.4071 6.17734 16.5349 7.97895 17.8215M13.0149 4.96309L12.4375 4M13.0149 4.96309L12.4375 5.77778M10.9441 19.0307L11.7866 18.2222M10.9441 19.0307L11.5625 20M12 9V12.5M12 14.5V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button id="nav-analyze" data-tab="analyze" class="nav-btn" title="Analisar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8.3L12 15l-3.3-3.3c-.8-.8-2-.8-2.8 0l-1 1"/></svg>
+            </button>
+            <button id="nav-config" data-tab="config" class="nav-btn" title="Configurações">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+    </nav>
 
-    <!-- Stats Bar -->
-    <div class="stats-bar">
-        <div class="stat-item">
-            <div class="stat-icon">📝</div>
-            <div class="stat-info">
-                <span class="stat-value" id="total-sentences">0</span>
-                <span class="stat-label">Sentences</span>
+    <main>
+        <!-- Tab List -->
+        <div id="tab-content-list" class="tab-content active">
+            <div id="sentences-list">
+                <!-- Phrases will be injected here -->
+            </div>
+            <!-- Empty State -->
+             <div id="empty-state" class="sync-container" style="display: none;">
+                <div class="big-icon">📚</div>
+                <p class="info-text">Nenhuma frase capturada ainda.</p>
+                <button id="btn-start-capture" class="btn-primary">
+                    Iniciar Captura
+                </button>
             </div>
         </div>
-        <div class="stat-item">
-            <div class="stat-icon">🎬</div>
-            <div class="stat-info">
-                <span class="stat-value" id="streaming-source">--</span>
-                <span class="stat-label">Source</span>
-            </div>
-        </div>
-        <div class="stat-item" id="sync-status">
-            <div class="stat-icon" id="sync-icon">☁️</div>
-            <div class="stat-info">
-                <span class="stat-value" id="sync-count">--</span>
-                <span class="stat-label">Synced</span>
-            </div>
-        </div>
-    </div>
 
-    <!-- Action Buttons -->
-    <div class="actions">
-        <button id="getCaptions" class="btn btn-secondary">
-            <span>🎯</span> Capture
-        </button>
-        <button id="save-words" class="btn btn-primary">
-            <span>📥</span> Load
-        </button>
-        <button id="sync-btn" class="btn btn-secondary">
-            <span>🔄</span> Sync
-        </button>
-        <button id="clear-all" class="btn btn-secondary">
-            <span>🗑️</span> Clear
-        </button>
-    </div>
-
-    <!-- Sentences List -->
-    <div class="sentences-container">
-        <div class="section-title">Captured Sentences</div>
-        <ul id="sentences">
-            <!-- Sentence cards will be inserted here -->
-        </ul>
-        
-        <!-- Empty State -->
-        <div class="empty-state" id="empty-state">
-            <div class="empty-icon">🎬</div>
-            <div class="empty-title">No sentences yet</div>
-            <div class="empty-description">
-                Go to a streaming service (YouTube, Netflix, etc.) and click on subtitles to capture sentences.
+        <!-- Tab Sync -->
+        <div id="tab-content-sync" class="tab-content">
+            <div class="sync-container">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="big-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                <div id="sync-status-text">
+                    <p class="info-text">Clique para sincronizar suas frases com a nuvem.</p>
+                    <p class="info-text" id="sync-count-info"></p>
+                </div>
+                <button id="sync-btn" class="btn-primary">Sincronizar Agora</button>
             </div>
         </div>
-    </div>
+
+        <!-- Tab Analyze -->
+        <div id="tab-content-analyze" class="tab-content">
+            <div class="analyze-container">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="big-icon"><path d="M3 3v18h18"/><path d="M18.7 8.3L12 15l-3.3-3.3c-.8-.8-2-.8-2.8 0l-1 1"/></svg>
+                <p class="info-text">Em breve: Análise do seu vocabulário e progresso!</p>
+                <button class="btn-primary" style="background-color: var(--border-color); cursor: not-allowed;">Ver Análise</button>
+            </div>
+        </div>
+
+        <!-- Tab Config -->
+        <div id="tab-content-config" class="tab-content">
+            <div class="config-section">
+                <h2>Preferências</h2>
+                <div class="space-y-3">
+                    <div class="config-item">
+                        <span>Tradução automática</span>
+                        <input type="checkbox" checked>
+                    </div>
+                    <div class="config-item">
+                        <span>Notificações</span>
+                        <input type="checkbox">
+                    </div>
+                    <button id="clear-all" class="btn-danger">
+                        Limpar todos os dados
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <!-- Toast Notification -->
-    <div class="toast" id="toast">
-        <span>✅</span>
+    <div id="toast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--success-color); color: white; padding: 10px 20px; border-radius: 8px; font-size: 0.875rem; transition: transform 0.3s ease-in-out; opacity: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
         <span id="toast-message">Action completed!</span>
     </div>
+    <style>
+        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        #toast.error { background: var(--error-color); }
+        #toast.info { background: var(--accent-color); }
+    </style>
 
     <script type="module" src="src/Popup/popup_handler.js"></script>
 </body>

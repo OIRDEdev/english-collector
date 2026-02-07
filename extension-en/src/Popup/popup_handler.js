@@ -2,415 +2,277 @@
  * Popup Handler - Manages the extension popup UI
  * Displays captured sentences with streaming source, timestamps, and sync status
  */
-import { DB } from "../Database/DatabaseManager.js";
-
 // DOM Elements
 const elements = {
-    getCaptionsBtn: document.getElementById('getCaptions'),
-    saveWordsBtn: document.getElementById('save-words'),
-    clearAllBtn: document.getElementById('clear-all'),
-    syncBtn: document.getElementById('sync-btn'),
-    sentencesList: document.getElementById('sentences'),
+    // Nav Buttons
+    navList: document.getElementById('nav-list'),
+    navSync: document.getElementById('nav-sync'),
+    navAnalyze: document.getElementById('nav-analyze'),
+    navConfig: document.getElementById('nav-config'),
+    navCapture: document.getElementById('nav-capture'),
+    
+    // Tab Contents
+    tabList: document.getElementById('tab-content-list'),
+    tabSync: document.getElementById('tab-content-sync'),
+    tabAnalyze: document.getElementById('tab-content-analyze'),
+    tabConfig: document.getElementById('tab-content-config'),
+
+    // Content Areas
+    sentencesList: document.getElementById('sentences-list'),
     emptyState: document.getElementById('empty-state'),
-    totalSentences: document.getElementById('total-sentences'),
-    streamingSource: document.getElementById('streaming-source'),
-    syncCount: document.getElementById('sync-count'),
-    syncIcon: document.getElementById('sync-icon'),
+    
+    // Sync specific
+    syncBtn: document.getElementById('sync-btn'),
+    // syncCount: document.getElementById('sync-count-info'), 
+    
+    // Config specific
+    clearAllBtn: document.getElementById('clear-all'),
+
+    // Toast
     toast: document.getElementById('toast'),
-    toastMessage: document.getElementById('toast-message')
+    toastMessage: document.getElementById('toast-message'),
+
+    // Start Capture Button (in empty state)
+    startCaptureBtn: document.getElementById('btn-start-capture')
 };
 
+// State
+let currentTab = 'list';
+
 /**
- * Format timestamp to readable time
- * @param {number} timestamp - Unix timestamp
- * @returns {string} Formatted time string
+ * Format timestamp to time or date
  */
 function formatTime(timestamp) {
     if (!timestamp) return '--:--';
-    
     const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    
-    // If less than 24 hours, show time
-    if (diff < 86400000) {
-        return date.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: false 
-        });
-    }
-    
-    // If less than 7 days, show day and time
-    if (diff < 604800000) {
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'short',
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: false 
-        });
-    }
-    
-    // Otherwise show full date
-    return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-    });
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 /**
- * Get streaming badge class based on source
- * @param {string} source - Streaming source name
- * @returns {string} CSS class for the badge
+ * Get source CSS class
  */
-function getStreamingClass(source) {
-    const sourceMap = {
-        'netflix': 'netflix',
-        'youtube': 'youtube',
-        'amazon prime video': 'primevideo',
-        'disney+': 'disneyplus',
-        'max (hbo)': 'max',
-        'star+': 'starplus'
+function getSourceClass(source) {
+    const map = {
+        'netflix': 'source-netflix',
+        'youtube': 'source-youtube',
+        'amazon': 'source-amazon',
+        'disney': 'source-disney',
+        'unknown': 'source-unknown'
     };
-    
-    return sourceMap[source?.toLowerCase()] || '';
+    const key = (source || 'unknown').toLowerCase().split(' ')[0];
+    return map[key] || 'source-unknown';
 }
 
 /**
- * Create sentence card HTML
- * @param {Object} sentence - Sentence data object
- * @returns {string} HTML string for the sentence card
+ * Switch Tab Function
+ */
+function switchTab(tabId) {
+    // Deactivate all
+    document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+    // Activate target
+    const targetBtn = document.getElementById(`nav-${tabId}`);
+    const targetContent = document.getElementById(`tab-content-${tabId}`);
+
+    if (targetBtn && targetContent) {
+        targetBtn.classList.add('active');
+        targetContent.classList.add('active');
+        currentTab = tabId;
+    }
+}
+
+/**
+ * Create Sentence Card HTML
  */
 function createSentenceCard(sentence) {
-    const streamingClass = getStreamingClass(sentence.source);
+    const sourceClass = getSourceClass(sentence.source);
     const timeFormatted = formatTime(sentence.timestamp);
-    const syncStatus = sentence.synced ? '✅' : '⏳';
-    
-    // Determina o estado da tradução
-    let translationContent = '';
-    if (!sentence.synced) {
-        translationContent = `
-            <div class="translation-not-sent">
-                <span>⚠️</span>
-                <span>Frase não enviada</span>
-            </div>
-        `;
-    } else if (sentence.translation) {
-        // Tradução recebida
-        let explanationHtml = '';
-        if (sentence.explanation) {
-            explanationHtml = `
-                <div class="translation-explanation">
-                    <span class="explanation-label">💡</span>
-                    <span>${escapeHtml(sentence.explanation)}</span>
+
+    // Translation Logic
+    let translationHtml = '';
+   
+    if (sentence.translation) {
+        translationHtml = `
+            <div class="translation-content" id="trans-${sentence.key}">
+                <div class="translation-row">
+                    <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1 14h6m-3-3v3M7 21l.5-1.5M7 21l-.5-1.5"></path></svg>
+                    <p class="translation-text">"${escapeHtml(sentence.translation)}"</p>
                 </div>
-            `;
-        }
-        translationContent = `
-            <div class="translation-main translation-loaded">
-                <span class="translation-label">🌐</span>
-                <span class="translation-text">${escapeHtml(sentence.translation)}</span>
+                ${sentence.explanation ? `<p class="translation-text" style="font-size: 0.75rem; margin-top: 5px;">💡 ${escapeHtml(sentence.explanation)}</p>` : ''}
             </div>
-            ${explanationHtml}
         `;
     } else if (sentence.translationPending) {
-        // Aguardando tradução da IA
-        translationContent = `
-            <div class="translation-loading">
-                <span class="loading-spinner"></span>
-                <span>Traduzindo...</span>
-            </div>
-        `;
-    } else {
-        // Sincronizado mas sem tradução ainda
-        translationContent = `
-            <div class="translation-loading">
-                <span class="loading-spinner"></span>
-                <span>Aguardando tradução...</span>
+        translationHtml = `
+             <div class="translation-content" id="trans-${sentence.key}">
+                <p class="translation-text">Traduzindo...</p>
             </div>
         `;
     }
-    
+
     return `
-        <li class="sentence-card ${sentence.synced ? 'synced' : 'pending'}" data-key="${sentence.key}" data-phrase-id="${sentence.phraseId || ''}">
-            <div class="sentence-header">
-                <span class="streaming-badge ${streamingClass}">
-                    🎬 ${sentence.source || 'Unknown'}
-                </span>
-                <div class="sentence-meta">
-                    <span class="sync-indicator" title="${sentence.synced ? 'Synced' : 'Pending sync'}">${syncStatus}</span>
-                    <span class="sentence-time">🕐 ${timeFormatted}</span>
+        <div class="phrase-item" data-key="${sentence.key}">
+            <div class="card-content">
+                <div class="card-header">
+                    <span class="source-badge ${sourceClass}">${sentence.source || 'Unknown'}</span>
+                    <span class="timestamp">${timeFormatted}</span>
+                </div>
+                <p class="phrase-text">"${escapeHtml(sentence.text)}"</p>
+                
+                <div class="card-actions">
+                    <button class="action-link toggle-trans-btn" data-target="trans-${sentence.key}">
+                        <svg class="w-3 h-3 transform transition-transform" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        Ver tradução
+                    </button>
+                    ${sentence.synced ? '<span style="font-size: 10px; color: var(--success-color);">☁️ Salvo</span>' : ''}
                 </div>
             </div>
-            <div class="sentence-text">${escapeHtml(sentence.text)}</div>
-            <div class="translation-content">
-                ${translationContent}
-            </div>
-        </li>
+            ${translationHtml}
+        </div>
     `;
 }
 
 /**
- * Escape HTML to prevent XSS
- * @param {string} text - Text to escape
- * @returns {string} Escaped text
+ * Toggle Translation Visibility
  */
+function toggleTranslation(targetId, btn) {
+    const content = document.getElementById(targetId);
+    if (!content) return;
+
+    // Close others? Optional.
+    document.querySelectorAll('.translation-content').forEach(el => {
+        if (el.id !== targetId) el.classList.remove('show');
+    });
+
+    content.classList.toggle('show');
+    
+    // Rotate icon
+    const icon = btn.querySelector('svg');
+    if (icon) {
+        if (content.classList.contains('show')) {
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-/**
- * Show toast notification
- * @param {string} message - Message to display
- * @param {string} type - Type of toast (success, error, info)
- */
 function showToast(message, type = 'success') {
     elements.toastMessage.textContent = message;
-    elements.toast.className = `toast ${type}`;
-    elements.toast.classList.add('show');
-    
+    elements.toast.className = `toast ${type} show`;
     setTimeout(() => {
-        elements.toast.classList.remove('show');
+        elements.toast.className = 'toast'; // hide
     }, 2500);
 }
 
 /**
- * Update sync status display
- * @param {Array} sentences - Array of sentence objects
- */
-function updateSyncStatus(sentences) {
-    const synced = sentences.filter(s => s.synced).length;
-    const pending = sentences.length - synced;
-    
-    if (pending > 0) {
-        elements.syncCount.textContent = `${pending}`;
-        elements.syncIcon.textContent = '⏳';
-        elements.syncBtn.classList.add('has-pending');
-    } else {
-        elements.syncCount.textContent = synced > 0 ? '✓' : '--';
-        elements.syncIcon.textContent = '☁️';
-        elements.syncBtn.classList.remove('has-pending');
-    }
-}
-
-/**
- * Update the UI with sentences data
- * @param {Array} sentences - Array of sentence objects
- */
-function updateUI(sentences) {
-    // Update stats
-    elements.totalSentences.textContent = sentences.length;
-    
-    // Get sources
-    if (sentences.length > 0) {
-        const sources = [...new Set(sentences.map(s => s.source))];
-        elements.streamingSource.textContent = sources.length > 1 
-            ? `${sources.length}` 
-            : (sources[0] || '--');
-    } else {
-        elements.streamingSource.textContent = '--';
-    }
-    
-    // Update sync status
-    updateSyncStatus(sentences);
-    
-    // Show/hide empty state
-    if (sentences.length === 0) {
-        elements.sentencesList.innerHTML = '';
-        elements.emptyState.style.display = 'flex';
-    } else {
-        elements.emptyState.style.display = 'none';
-        elements.sentencesList.innerHTML = sentences
-            .map(createSentenceCard)
-            .join('');
-    }
-}
-
-/**
- * Load and display all sentences
+ * Load Sentences
  */
 function loadSentences() {
     chrome.runtime.sendMessage({ type: "getAllSentences" }, (response) => {
-        if (chrome.runtime.lastError) {
-            console.error("Error loading sentences:", chrome.runtime.lastError);
-            showToast("Error loading sentences", "error");
-            return;
-        }
-
         if (!response || !response.data) {
             updateUI([]);
             return;
         }
 
-        // Convert object to sorted array
         const sentences = Object.entries(response.data)
-            .map(([key, value]) => {
-                // Handle both old format (string) and new format (object)
-                if (typeof value === 'string') {
-                    return { key, text: value, source: 'Unknown', timestamp: null, synced: false };
-                }
-                return { key, ...value };
-            })
+            .map(([key, value]) => ({ key, ...value }))
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
         updateUI(sentences);
     });
 }
 
-/**
- * Sync pending sentences with backend
- */
-function syncPending() {
-    elements.syncBtn.disabled = true;
-    elements.syncIcon.textContent = '🔄';
-    showToast("Syncing...", "info");
-
-    chrome.runtime.sendMessage({ type: "syncPending" }, (response) => {
-        elements.syncBtn.disabled = false;
+function updateUI(sentences) {
+    if (sentences.length === 0) {
+        elements.sentencesList.innerHTML = '';
+        elements.emptyState.style.display = 'block';
+    } else {
+        elements.emptyState.style.display = 'none';
+        elements.sentencesList.innerHTML = sentences.map(createSentenceCard).join('');
         
-        if (response && response.success) {
-            if (response.synced > 0) {
-                showToast(`Synced ${response.synced} sentences!`);
-            } else if (response.total === 0) {
-                showToast("All sentences already synced!", "info");
-            } else {
-                showToast(`Sync failed for ${response.failed} sentences`, "error");
-            }
-            loadSentences(); // Reload to update sync status
-        } else {
-            showToast("Sync failed", "error");
-            elements.syncIcon.textContent = '⚠️';
-        }
-    });
-}
-
-/**
- * Clear all sentences
- */
-function clearAllSentences() {
-    if (confirm('Are you sure you want to clear all sentences?')) {
-        chrome.runtime.sendMessage({ type: "clearAllSentences" }, (response) => {
-            updateUI([]);
-            showToast("All sentences cleared!");
+        // Re-attach event listeners for dynamic buttons
+        document.querySelectorAll('.toggle-trans-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetId = btn.getAttribute('data-target');
+                toggleTranslation(targetId, btn);
+            });
         });
     }
 }
 
 /**
- * Trigger caption capture on current tab
+ * Capture Logic
  */
 function triggerCapture() {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         if (tab && tab.url) {
-            const supportedSites = [
-                'youtube.com',
-                'netflix.com',
-                'primevideo.com',
-                'disneyplus.com',
-                'hbomax.com',
-                'starplus.com'
-            ];
-            
-            const isSupported = supportedSites.some(site => tab.url.includes(site));
-            
-            if (isSupported) {
-                // Using the specific loader for the content script
-                chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    files: ['src/Content/loader.js']
-                });
-                showToast("Capture mode activated!");
-            } else {
-                showToast("Not on a supported streaming site", "error");
-            }
+             // Basic support check
+             chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['src/Content/loader.js']
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    showToast("Erro ao injetar script", "error");
+                } else {
+                    showToast("Modo de captura ativado!");
+                }
+            });
         }
     });
 }
 
 // Event Listeners
-elements.getCaptionsBtn.addEventListener('click', triggerCapture);
-elements.saveWordsBtn.addEventListener('click', () => {
+document.addEventListener('DOMContentLoaded', () => {
     loadSentences();
-    showToast("Sentences loaded!", "info");
-});
-elements.syncBtn.addEventListener('click', syncPending);
-elements.clearAllBtn.addEventListener('click', clearAllSentences);
 
-// Listen for translation notifications from service worker
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type !== 'popup-notification') return;
+    // Tabs
+    if(elements.navList) elements.navList.addEventListener('click', () => switchTab('list'));
+    if(elements.navSync) elements.navSync.addEventListener('click', () => switchTab('sync'));
+    if(elements.navAnalyze) elements.navAnalyze.addEventListener('click', () => switchTab('analyze'));
+    if(elements.navConfig) elements.navConfig.addEventListener('click', () => switchTab('config'));
 
-    switch (message.event) {
-        case 'translation-received':
-            console.log('[Popup] Translation received:', message.data);
-            updateCardWithTranslation(message.data);
-            break;
+    // Actions
+    if(elements.navCapture) elements.navCapture.addEventListener('click', triggerCapture);
+    if(elements.startCaptureBtn) elements.startCaptureBtn.addEventListener('click', triggerCapture);
+    
+    if(elements.clearAllBtn) {
+        elements.clearAllBtn.addEventListener('click', () => {
+            if(confirm("Tem certeza que deseja limpar tudo?")) {
+                chrome.runtime.sendMessage({ type: "clearAllSentences" }, () => {
+                    loadSentences();
+                    showToast("Tudo limpo!");
+                });
+            }
+        });
+    }
 
-        case 'translation-error':
-            console.log('[Popup] Translation error:', message.data);
-            updateCardWithError(message.data);
-            break;
+    if(elements.syncBtn) {
+        elements.syncBtn.addEventListener('click', () => {
+            showToast("Sincronizando...", "info");
+            chrome.runtime.sendMessage({ type: "syncPending" }, (res) => {
+                if (res && res.success) {
+                    showToast(`Sincronizado: ${res.synced} frases!`);
+                    loadSentences();
+                } else {
+                    showToast("Falha na sincronização", "error");
+                }
+            });
+        });
     }
 });
 
-/**
- * Atualiza card com tradução recebida
- * @param {Object} data - Dados da tradução
- */
-function updateCardWithTranslation(data) {
-    const card = document.querySelector(`[data-phrase-id="${data.phrase_id}"]`);
-    if (!card) {
-        console.log('[Popup] Card not found for phrase:', data.phrase_id);
-        return;
+// Listener for updates
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'popup-notification') {
+        if (message.event === 'translation-received' || message.event === 'translation-error') {
+            loadSentences(); // Reload to show new state
+        }
     }
-
-    const translationDiv = card.querySelector('.translation-content');
-    if (!translationDiv) return;
-
-    let html = `
-        <div class="translation-main">
-            <span class="translation-label">🌐</span>
-            <span class="translation-text">${escapeHtml(data.traducao_completa)}</span>
-        </div>
-    `;
-
-    if (data.explicacao) {
-        html += `
-            <div class="translation-explanation">
-                <span class="explanation-label">💡</span>
-                <span>${escapeHtml(data.explicacao)}</span>
-            </div>
-        `;
-    }
-
-    translationDiv.innerHTML = html;
-    translationDiv.classList.add('translation-loaded');
-    showToast("Tradução recebida!", "success");
-}
-
-/**
- * Atualiza card com erro de tradução
- * @param {Object} data - Dados do erro
- */
-function updateCardWithError(data) {
-    const card = document.querySelector(`[data-phrase-id="${data.phrase_id}"]`);
-    if (!card) return;
-
-    const translationDiv = card.querySelector('.translation-content');
-    if (!translationDiv) return;
-
-    translationDiv.innerHTML = `
-        <div class="translation-error">
-            <span>❌</span>
-            <span>Erro ao traduzir</span>
-        </div>
-    `;
-}
-
-// Load sentences on popup open
-document.addEventListener('DOMContentLoaded', loadSentences);
+});
