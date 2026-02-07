@@ -2,6 +2,7 @@
  * Popup Handler - Manages the extension popup UI
  * Displays captured sentences with streaming source, timestamps, and sync status
  */
+import { DB } from "../Database/DatabaseManager.js";
 
 // DOM Elements
 const elements = {
@@ -318,9 +319,10 @@ function triggerCapture() {
             const isSupported = supportedSites.some(site => tab.url.includes(site));
             
             if (isSupported) {
+                // Using the specific loader for the content script
                 chrome.scripting.executeScript({
                     target: { tabId: tab.id },
-                    files: ['js/getCaptions.js']
+                    files: ['src/Content/loader.js']
                 });
                 showToast("Capture mode activated!");
             } else {
@@ -412,4 +414,3 @@ function updateCardWithError(data) {
 
 // Load sentences on popup open
 document.addEventListener('DOMContentLoaded', loadSentences);
-

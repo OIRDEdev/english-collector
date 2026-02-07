@@ -1,14 +1,17 @@
 /**
  * Offscreen SSE Worker
- * Mantém conexão SSE ativa mesmo quando popup está fechado
+ * Performs the SSE connection handling within the Offscreen Document.
  * 
- * IMPORTANTE: Offscreen NÃO tem acesso a chrome.storage!
- * Apenas envia mensagens para o Service Worker que salva os dados.
+ * IMPORTANT: Offscreen does NOT have access to chrome.storage!
+ * It only sends messages to the Service Worker which saves the data.
  */
+import { config } from "../Shared/config.js";
+
 (function() {
     'use strict';
 
-    const SSE_URL = 'http://localhost:8080/api/v1/sse/translations';
+    // SSE URL from config or default
+    const SSE_URL = config.apiUrl ? `${config.apiUrl}/api/v1/sse/translations` : 'http://localhost:8080/api/v1/sse/translations';
 
     let eventSource = null;
     let connected = false;
@@ -16,7 +19,7 @@
     const maxReconnectAttempts = 10;
 
     /**
-     * Conecta ao servidor SSE
+     * Connects to the SSE server
      */
     function connect() {
         if (eventSource) {
@@ -40,23 +43,23 @@
                 console.log('[Offscreen SSE] Client ID:', data.client_id);
             });
 
-            // Tradução recebida - envia para Service Worker salvar
+            // Translation received - send to Service Worker to save
             eventSource.addEventListener('translation', (e) => {
                 const event = JSON.parse(e.data);
                 console.log('[Offscreen SSE] Translation received:', event.payload);
                 
-                // Envia para o Service Worker salvar no storage
+                // Send to Service Worker to save in storage
                 sendToServiceWorker('translation-received', event.payload);
             });
 
-            // Erro de tradução
+            // Translation error
             eventSource.addEventListener('translation_error', (e) => {
                 const event = JSON.parse(e.data);
                 console.log('[Offscreen SSE] Translation error:', event.payload);
                 sendToServiceWorker('translation-error', event.payload);
             });
 
-            // Ping - apenas keep-alive
+            // Ping - keep-alive only
             eventSource.addEventListener('ping', () => {
                 // Keep-alive, no action needed
             });
@@ -75,7 +78,7 @@
     }
 
     /**
-     * Desconecta do servidor SSE
+     * Disconnects from SSE server
      */
     function disconnect() {
         if (eventSource) {
@@ -87,7 +90,7 @@
     }
 
     /**
-     * Tenta reconectar com backoff exponencial
+     * Attempts to reconnect with exponential backoff
      */
     function attemptReconnect() {
         if (reconnectAttempts >= maxReconnectAttempts) {
@@ -105,9 +108,9 @@
     }
 
     /**
-     * Envia mensagem para o Service Worker
-     * @param {string} event - Nome do evento
-     * @param {Object} data - Dados do evento
+     * Sends message to Service Worker
+     * @param {string} event - Event name
+     * @param {Object} data - Event data
      */
     function sendToServiceWorker(event, data) {
         chrome.runtime.sendMessage({
@@ -120,7 +123,7 @@
     }
 
     /**
-     * Ouve mensagens do Service Worker
+     * Listens for messages from Service Worker
      */
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.target !== 'offscreen') return;
