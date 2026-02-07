@@ -13,22 +13,22 @@
     "default_popup": "index.html"
   },
   "background": {
-    "service_worker": "./Sentences_controllers.js",
+    "service_worker": "src/Background/index.js",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": [
-        "js/getcontext.js",
-        "js/contexts/youtube.js",
-        "js/contexts/netflix.js",
-        "js/contexts/amazon.js",
-        "js/contexts/disney.js",
-        "js/contexts/max.js",
-        "js/contexts/star.js",
-        "js/contexts/generic.js",
-        "js/getCaptions.js"
+        "src/Content/GetContext.js",
+        "src/Content/Contexts/youtube.js",
+        "src/Content/Contexts/netflix.js",
+        "src/Content/Contexts/amazon.js",
+        "src/Content/Contexts/disney.js",
+        "src/Content/Contexts/max.js",
+        "src/Content/Contexts/star.js",
+        "src/Content/Contexts/generic.js",
+        "src/Content/loader.js"
       ],
       "run_at": "document_idle"
     }
@@ -41,5 +41,11 @@
       },
       "description": "Salva a palavra selecionada"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/Content/*.js", "src/Content/Streamings/*.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

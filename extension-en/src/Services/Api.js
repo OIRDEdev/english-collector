@@ -1,8 +1,8 @@
-import { config } from "./config.js";
+import { config } from "../Shared/config.js";
 
 /**
- * API Client - Gerencia chamadas para o backend
- * Responsável por autenticação e envio de frases
+ * API Client - Manages backend calls
+ * Responsible for authentication and phrase submission
  */
 class ApiClient {
     constructor(options = {}) {
@@ -13,8 +13,8 @@ class ApiClient {
     }
 
     /**
-     * Define o header de autorização
-     * @param {string} token - Token de acesso
+     * Sets auth header
+     * @param {string} token - Access token
      */
     setAuthToken(token) {
         if (token) {
@@ -27,7 +27,7 @@ class ApiClient {
     }
 
     /**
-     * Carrega token salvo do storage
+     * Loads saved token from storage
      */
     async loadSavedAuth() {
         try {
@@ -43,8 +43,8 @@ class ApiClient {
     }
 
     /**
-     * Salva token no storage
-     * @param {string} token - Token para salvar
+     * Saves token to storage
+     * @param {string} token - Token to save
      */
     async saveAuthToken(token) {
         await chrome.storage.local.set({ auth_token: token });
@@ -52,7 +52,7 @@ class ApiClient {
     }
 
     /**
-     * Remove autenticação
+     * Removes authentication
      */
     async logout() {
         await chrome.storage.local.remove("auth_token");
@@ -62,7 +62,7 @@ class ApiClient {
     }
 
     /**
-     * Realiza login com tokens
+     * Log in with tokens
      * @param {string} idToken - ID Token
      * @param {string} accessToken - Access Token
      * @returns {Promise<boolean>}
@@ -83,8 +83,8 @@ class ApiClient {
     }
 
     /**
-     * Método genérico para chamadas HTTP
-     * @param {Object} options - Opções da requisição
+     * Generic HTTP call method
+     * @param {Object} options - Request options
      * @returns {Promise<Object>}
      */
     async call(options) {
@@ -121,12 +121,12 @@ class ApiClient {
     }
 
     /**
-     * Envia uma frase para o backend
-     * @param {string} text - Texto da frase
-     * @param {string} urlOrigem - URL de origem da frase
-     * @param {string} tituloPagina - Título da página
-     * @param {string} context - Contexto adicional da frase
-     * @param {number} usuarioId - ID do usuário (opcional)
+     * Sends a phrase to backend
+     * @param {string} text 
+     * @param {string} urlOrigem 
+     * @param {string} tituloPagina 
+     * @param {string} context 
+     * @param {number} usuarioId 
      * @returns {Promise<Object>}
      */
     async addPhrase(text, urlOrigem = "", tituloPagina = "", context = null, usuarioId = 1) {
@@ -143,7 +143,6 @@ class ApiClient {
                 titulo_pagina: tituloPagina
             };
 
-            // Adiciona contexto se disponível
             if (context) {
                 body.contexto = context;
             }
@@ -155,8 +154,6 @@ class ApiClient {
             });
 
             this.lastPhrase = text;
-            
-            // Extrai phraseId da resposta (formato: { data: { id: X, ... } })
             const phraseId = result?.data?.id || result?.id || null;
             
             console.log("[API] Phrase sent:", text.substring(0, 50) + "... (ID:", phraseId, ")");
@@ -167,17 +164,12 @@ class ApiClient {
         }
     }
 
-    /**
-     * Busca frases do backend
-     * @returns {Promise<Array>}
-     */
     async getPhrases() {
         try {
             const result = await this.call({
                 method: "GET",
                 endpoint: "api/v1/phrases"
             });
-
             return result.data || [];
         } catch (error) {
             console.error("[API] Failed to get phrases:", error);
@@ -185,18 +177,12 @@ class ApiClient {
         }
     }
 
-    /**
-     * Busca uma frase pelo ID
-     * @param {number} id - ID da frase
-     * @returns {Promise<Object|null>}
-     */
     async getPhrase(id) {
         try {
             const result = await this.call({
                 method: "GET",
                 endpoint: `api/v1/phrases/${id}`
             });
-
             return result.data || null;
         } catch (error) {
             console.error("[API] Failed to get phrase:", error);
@@ -204,12 +190,6 @@ class ApiClient {
         }
     }
 
-    /**
-     * Atualiza uma frase
-     * @param {number} id - ID da frase
-     * @param {Object} data - Dados para atualizar
-     * @returns {Promise<Object|null>}
-     */
     async updatePhrase(id, data) {
         try {
             const result = await this.call({
@@ -220,7 +200,6 @@ class ApiClient {
                     idioma_origem: data.idioma_origem
                 }
             });
-
             return result.data || null;
         } catch (error) {
             console.error("[API] Failed to update phrase:", error);
@@ -228,11 +207,6 @@ class ApiClient {
         }
     }
 
-    /**
-     * Deleta uma frase do backend
-     * @param {number} id - ID da frase
-     * @returns {Promise<boolean>}
-     */
     async deletePhrase(id) {
         try {
             await this.call({
@@ -246,10 +220,6 @@ class ApiClient {
         }
     }
 
-    /**
-     * Verifica status da API
-     * @returns {Promise<boolean>}
-     */
     async healthCheck() {
         try {
             await this.call({
@@ -263,7 +233,6 @@ class ApiClient {
     }
 }
 
-// Exporta classe e instância singleton
 const api = new ApiClient();
 
 export { ApiClient, api };
