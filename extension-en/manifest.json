@@ -28,7 +28,8 @@
         "src/Content/Contexts/max.js",
         "src/Content/Contexts/star.js",
         "src/Content/Contexts/generic.js",
-        "src/Content/loader.js"
+        "src/Content/loader.js",
+        "src/Shared/utils/UrlUtils.js"
       ],
       "run_at": "document_idle"
     }
