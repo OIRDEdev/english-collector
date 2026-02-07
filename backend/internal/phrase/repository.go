@@ -147,3 +147,4 @@ func (r *Repository) GetDetailsByPhraseID(ctx context.Context, phraseID int) (*P
 	json.Unmarshal(fatias, &d.FatiasTraducoes)
 	return &d, nil
 }
+

@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"net/http"
-
 	"extension-backend/internal/phrase"
+	"extension-backend/internal/shared"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -28,7 +28,8 @@ func (h *Handler) CreatePhrase(w http.ResponseWriter, r *http.Request) {
 		SendError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-
+	input.Conteudo = shared.TruncateRunes(input.Conteudo, 100)
+	input.TituloPagina = shared.TruncateRunes(input.TituloPagina, 100)
 	created, err := h.phraseService.Create(ctx, input)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, err.Error())

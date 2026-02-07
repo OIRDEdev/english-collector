@@ -25,3 +25,14 @@ func CheckPassword(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
+
+func TruncateRunes(s string, max int) string {
+	runes := []rune(s)
+
+	if len(runes) <= max {
+		return s
+	}
+
+	return string(runes[:max])
+}
+

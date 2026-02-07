@@ -99,12 +99,13 @@ class ApiClient {
         }
 
         try {
+            console.log("[API] Body:", body);
             const response = await fetch(`${this.config.apiUrl}/${endpoint}`, {
                 method,
                 headers,
                 body: body ? JSON.stringify(body) : null
             });
-
+            console.log("[API] Response:", response);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
