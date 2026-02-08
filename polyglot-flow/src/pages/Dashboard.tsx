@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { PhraseFeed } from "@/components/dashboard/PhraseFeed";
 import { PhraseDetailSheet } from "@/components/dashboard/PhraseDetailSheet";
@@ -29,63 +29,69 @@ interface GroupWithCount {
   count: number;
 }
 
+// Adapta frase da API para formato interno
+function adaptPhrase(p: PhraseWithDetails): Phrase {
+  let faviconUrl = "";
+  if (p.url_origem) {
+    try {
+      const url = new URL(p.url_origem);
+      faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}`;
+    } catch {
+      faviconUrl = "";
+    }
+  }
+
+  return {
+    id: p.id,
+    conteudo: p.conteudo,
+    idioma: p.idioma_origem,
+    grupo: "Geral",
+    titulo_pagina: p.titulo_pagina || "Página desconhecida",
+    favicon_url: faviconUrl,
+    created_at: p.capturado_em,
+    detalhes: {
+      traducao_completa: p.detalhes?.traducao_completa || "",
+      explicacao: p.detalhes?.explicacao || "",
+      fatias_traducoes: p.detalhes?.fatias_traducoes || {},
+    },
+  };
+}
+
+const PAGE_SIZE = 20;
+
 const Dashboard = () => {
   const [phrases, setPhrases] = useState<Phrase[]>([]);
   const [grupos, setGrupos] = useState<GroupWithCount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [hasMore, setHasMore] = useState(false);
-  
+
   const [selectedPhrase, setSelectedPhrase] = useState<Phrase | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
-  // Carrega dados ao montar
+  // Ref para evitar chamadas duplicadas
+  const loadingMoreRef = useRef(false);
+
+  // Carrega dados iniciais
   useEffect(() => {
-    async function loadData() {
+    async function loadInitialData() {
       setLoading(true);
       setError(null);
-      
+
       try {
         const [phrasesResult, groupsData] = await Promise.all([
-          getPhrases({ limit: 20 }),
-          getGroups()
+          getPhrases({ limit: PAGE_SIZE }),
+          getGroups(),
         ]);
 
-        // Adapta as frases da API para o formato do componente
-        const adaptedPhrases: Phrase[] = phrasesResult.data.map((p: PhraseWithDetails) => {
-          let faviconUrl = "";
-          if (p.url_origem) {
-            try {
-              const url = new URL(p.url_origem);
-              faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}`;
-            } catch {
-              faviconUrl = "";
-            }
-          }
-          
-          return {
-            id: p.id,
-            conteudo: p.conteudo,
-            idioma: p.idioma_origem,
-            grupo: "Geral",
-            titulo_pagina: p.titulo_pagina || "Página desconhecida",
-            favicon_url: faviconUrl,
-            created_at: p.capturado_em,
-            detalhes: {
-              traducao_completa: p.detalhes?.traducao_completa || "",
-              explicacao: p.detalhes?.explicacao || "",
-              fatias_traducoes: p.detalhes?.fatias_traducoes || {}
-            }
-          };
-        });
-
-        // Adapta os grupos da API
+        const adaptedPhrases = phrasesResult.data.map(adaptPhrase);
         const adaptedGroups: GroupWithCount[] = groupsData.map((g: Group) => ({
           nome: g.nome_grupo,
           cor: g.cor_etiqueta || "#22d3ee",
-          count: 0
+          count: 0,
         }));
 
         setPhrases(adaptedPhrases);
@@ -100,13 +106,41 @@ const Dashboard = () => {
       }
     }
 
-    loadData();
+    loadInitialData();
   }, []);
 
-  const handlePhraseClick = (phrase: Phrase) => {
+  // Carrega mais frases (infinite scroll)
+  const loadMore = useCallback(async () => {
+    // Evita chamadas duplicadas
+    if (loadingMoreRef.current || !hasMore || !nextCursor) return;
+
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+
+    try {
+      const result = await getPhrases({
+        cursor: nextCursor,
+        limit: PAGE_SIZE,
+      });
+
+      const newPhrases = result.data.map(adaptPhrase);
+
+      // Append sem causar re-render desnecessário
+      setPhrases((prev) => [...prev, ...newPhrases]);
+      setNextCursor(result.next_cursor);
+      setHasMore(result.has_more);
+    } catch (err) {
+      console.error("Error loading more phrases:", err);
+    } finally {
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
+    }
+  }, [hasMore, nextCursor]);
+
+  const handlePhraseClick = useCallback((phrase: Phrase) => {
     setSelectedPhrase(phrase);
     setSheetOpen(true);
-  };
+  }, []);
 
   const filteredPhrases = activeGroup
     ? phrases.filter((p) => p.grupo === activeGroup)
@@ -152,21 +186,23 @@ const Dashboard = () => {
                 {activeGroup || "Todas as Frases"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {filteredPhrases.length} frase{filteredPhrases.length !== 1 ? "s" : ""} capturada{filteredPhrases.length !== 1 ? "s" : ""}
+                {filteredPhrases.length} frase
+                {filteredPhrases.length !== 1 ? "s" : ""} capturada
+                {filteredPhrases.length !== 1 ? "s" : ""}
+                {hasMore && " • mais disponíveis"}
               </p>
             </div>
           </header>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-auto">
-            {filteredPhrases.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>Nenhuma frase capturada ainda.</p>
-                <p className="text-sm mt-1">Use a extensão para capturar frases!</p>
-              </div>
-            ) : (
-              <PhraseFeed phrases={filteredPhrases} onPhraseClick={handlePhraseClick} />
-            )}
+          <div className="flex-1 p-6">
+            <PhraseFeed
+              phrases={filteredPhrases}
+              onPhraseClick={handlePhraseClick}
+              hasMore={hasMore}
+              isLoadingMore={loadingMore}
+              onLoadMore={loadMore}
+            />
           </div>
         </main>
 
