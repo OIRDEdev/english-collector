@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { LoginRequest, LoginResponse, GoogleAuthRequest, User } from '@/types/api';
 
-const API_BASE_URL = 'https://api.multlearningweb.com/api/v1';
+const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 // Token Storage Keys
 const ACCESS_TOKEN_KEY = 'polyglotflow_access_token';

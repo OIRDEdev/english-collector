@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { PhraseFeed } from "@/components/dashboard/PhraseFeed";
 import { PhraseDetailSheet } from "@/components/dashboard/PhraseDetailSheet";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Menu } from "lucide-react";
+import { Menu, Loader2 } from "lucide-react";
+import { getPhrases, type Phrase as ApiPhrase } from "@/services/phrases";
+import { getGroups, type Group } from "@/services/groups";
 
+// Tipo adaptado para o componente (inclui detalhes)
 export interface Phrase {
   id: number;
   conteudo: string;
@@ -20,112 +23,82 @@ export interface Phrase {
   };
 }
 
-// Mock data para demonstração
-const mockPhrases: Phrase[] = [
-  {
-    id: 1,
-    conteudo: "I don't wanna go home yet",
-    idioma: "en",
-    grupo: "Inglês",
-    titulo_pagina: "Reddit - r/CasualConversation",
-    favicon_url: "https://www.reddit.com/favicon.ico",
-    created_at: "2024-01-15T10:30:00Z",
-    detalhes: {
-      traducao_completa: "Eu não quero ir para casa ainda",
-      explicacao: "O uso de 'wanna' é uma contração informal muito comum em inglês falado, combinando 'want' + 'to'. É amplamente usada em conversas casuais, músicas e filmes. Note que 'yet' no final indica que a ação ainda não aconteceu, mas pode acontecer no futuro.",
-      fatias_traducoes: {
-        "I don't": "Eu não",
-        "wanna": "quero",
-        "go home": "ir para casa",
-        "yet": "ainda"
-      }
-    }
-  },
-  {
-    id: 2,
-    conteudo: "func main() { fmt.Println('Hello') }",
-    idioma: "go",
-    grupo: "Go Lang",
-    titulo_pagina: "Go Documentation",
-    favicon_url: "https://go.dev/favicon.ico",
-    created_at: "2024-01-14T15:45:00Z",
-    detalhes: {
-      traducao_completa: "Função principal que imprime 'Hello' no console",
-      explicacao: "Em Go, 'func main()' é o ponto de entrada do programa. O pacote 'fmt' fornece funções de formatação de I/O. 'Println' imprime uma linha com quebra de linha automática.",
-      fatias_traducoes: {
-        "func main()": "função principal",
-        "fmt.Println": "imprimir linha formatada",
-        "'Hello'": "string de texto"
-      }
-    }
-  },
-  {
-    id: 3,
-    conteudo: "Я хочу учить русский язык",
-    idioma: "ru",
-    grupo: "Russo",
-    titulo_pagina: "Russian Learning Blog",
-    favicon_url: "https://example.com/favicon.ico",
-    created_at: "2024-01-13T09:20:00Z",
-    detalhes: {
-      traducao_completa: "Eu quero aprender a língua russa",
-      explicacao: "Esta frase usa o verbo 'хотеть' (querer) conjugado na primeira pessoa. 'Учить' significa estudar/aprender. 'Русский язык' é literalmente 'língua russa'.",
-      fatias_traducoes: {
-        "Я": "Eu",
-        "хочу": "quero",
-        "учить": "aprender",
-        "русский язык": "língua russa"
-      }
-    }
-  },
-  {
-    id: 4,
-    conteudo: "It's gonna be alright, don't worry about it",
-    idioma: "en",
-    grupo: "Inglês",
-    titulo_pagina: "BBC News Article",
-    favicon_url: "https://www.bbc.com/favicon.ico",
-    created_at: "2024-01-12T18:00:00Z",
-    detalhes: {
-      traducao_completa: "Vai ficar tudo bem, não se preocupe com isso",
-      explicacao: "'Gonna' é a contração informal de 'going to', muito usada em inglês falado. 'Alright' é uma forma coloquial de 'all right'. A expressão 'don't worry about it' é uma forma comum de tranquilizar alguém.",
-      fatias_traducoes: {
-        "It's gonna be": "Vai ser/ficar",
-        "alright": "tudo bem",
-        "don't worry": "não se preocupe",
-        "about it": "com isso"
-      }
-    }
-  },
-  {
-    id: 5,
-    conteudo: "defer file.Close()",
-    idioma: "go",
-    grupo: "Go Lang",
-    titulo_pagina: "Go by Example",
-    favicon_url: "https://gobyexample.com/favicon.ico",
-    created_at: "2024-01-11T14:30:00Z",
-    detalhes: {
-      traducao_completa: "Adiar o fechamento do arquivo",
-      explicacao: "'defer' é uma palavra-chave única em Go que adia a execução de uma função até que a função atual retorne. É comumente usado para garantir que recursos como arquivos sejam fechados corretamente.",
-      fatias_traducoes: {
-        "defer": "adiar execução",
-        "file.Close()": "fechar arquivo"
-      }
-    }
-  }
-];
-
-const grupos = [
-  { nome: "Inglês", cor: "#22d3ee", count: 2 },
-  { nome: "Go Lang", cor: "#10b981", count: 2 },
-  { nome: "Russo", cor: "#f43f5e", count: 1 },
-];
+interface GroupWithCount {
+  nome: string;
+  cor: string;
+  count: number;
+}
 
 const Dashboard = () => {
+  const [phrases, setPhrases] = useState<Phrase[]>([]);
+  const [grupos, setGrupos] = useState<GroupWithCount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const [selectedPhrase, setSelectedPhrase] = useState<Phrase | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+
+  // Carrega dados ao montar
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const [phrasesData, groupsData] = await Promise.all([
+          getPhrases(),
+          getGroups()
+        ]);
+
+        // Adapta as frases da API para o formato do componente
+        const adaptedPhrases: Phrase[] = phrasesData.map((p: ApiPhrase) => {
+          let faviconUrl = "";
+          if (p.url_origem) {
+            try {
+              const url = new URL(p.url_origem);
+              faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}`;
+            } catch {
+              // URL inválida, usa favicon genérico
+              faviconUrl = "";
+            }
+          }
+          
+          return {
+            id: p.id,
+            conteudo: p.conteudo,
+            idioma: p.idioma_origem,
+            grupo: "Geral", // TODO: associar grupo real quando implementado
+            titulo_pagina: p.titulo_pagina || "Página desconhecida",
+            favicon_url: faviconUrl,
+            created_at: p.capturado_em,
+            detalhes: {
+              traducao_completa: "", // TODO: buscar detalhes quando implementado
+              explicacao: "",
+              fatias_traducoes: {}
+            }
+          };
+        });
+
+        // Adapta os grupos da API
+        const adaptedGroups: GroupWithCount[] = groupsData.map((g: Group) => ({
+          nome: g.nome_grupo,
+          cor: g.cor_etiqueta || "#22d3ee",
+          count: 0 // TODO: contar frases por grupo
+        }));
+
+        setPhrases(adaptedPhrases);
+        setGrupos(adaptedGroups);
+      } catch (err) {
+        console.error("Error loading data:", err);
+        setError(err instanceof Error ? err.message : "Erro ao carregar dados");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
 
   const handlePhraseClick = (phrase: Phrase) => {
     setSelectedPhrase(phrase);
@@ -133,8 +106,27 @@ const Dashboard = () => {
   };
 
   const filteredPhrases = activeGroup
-    ? mockPhrases.filter((p) => p.grupo === activeGroup)
-    : mockPhrases;
+    ? phrases.filter((p) => p.grupo === activeGroup)
+    : phrases;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Erro ao carregar dados</p>
+          <p className="text-muted-foreground text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -143,7 +135,7 @@ const Dashboard = () => {
           grupos={grupos}
           activeGroup={activeGroup}
           onGroupSelect={setActiveGroup}
-          totalPhrases={mockPhrases.length}
+          totalPhrases={phrases.length}
         />
 
         <main className="flex-1 flex flex-col">
@@ -164,7 +156,14 @@ const Dashboard = () => {
 
           {/* Content */}
           <div className="flex-1 p-6 overflow-auto">
-            <PhraseFeed phrases={filteredPhrases} onPhraseClick={handlePhraseClick} />
+            {filteredPhrases.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Nenhuma frase capturada ainda.</p>
+                <p className="text-sm mt-1">Use a extensão para capturar frases!</p>
+              </div>
+            ) : (
+              <PhraseFeed phrases={filteredPhrases} onPhraseClick={handlePhraseClick} />
+            )}
           </div>
         </main>
 
