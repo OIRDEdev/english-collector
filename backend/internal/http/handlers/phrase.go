@@ -4,6 +4,7 @@ import (
 	"extension-backend/internal/phrase"
 	"extension-backend/internal/shared"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -11,13 +12,27 @@ import (
 func (h *Handler) ListPhrases(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	phrases, err := h.phraseService.GetAll(ctx)
+	// Pega parâmetros de paginação da query string
+	cursor := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+	
+	limit := 20
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
+	}
+
+	result, err := h.phraseService.GetAllPaginated(ctx, phrase.PaginationParams{
+		Cursor: cursor,
+		Limit:  limit,
+	})
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	SendSuccess(w, http.StatusOK, "Phrases retrieved", phrases)
+	SendJSON(w, http.StatusOK, result)
 }
 
 func (h *Handler) CreatePhrase(w http.ResponseWriter, r *http.Request) {

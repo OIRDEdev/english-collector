@@ -13,7 +13,8 @@ import (
 	apphttp "extension-backend/internal/http"
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/http/middleware"
-	"extension-backend/internal/phrase"
+	phraseRepo "extension-backend/internal/phrase/repository"
+	phraseSvc "extension-backend/internal/phrase/service"
 	"extension-backend/internal/sse"
 	"extension-backend/internal/user"
 
@@ -38,13 +39,13 @@ func main() {
 	// Initialize repositories
 	userRepo := user.NewRepository(db)
 	refreshTokenRepo := user.NewRefreshTokenRepository(db)
-	phraseRepo := phrase.NewRepository(db)
+	phraseRepository := phraseRepo.New(db)
 	groupRepo := group.NewRepository(db)
 
 	// Initialize services
 	tokenService := user.NewTokenService()
 	userService := user.NewService(userRepo, refreshTokenRepo, tokenService)
-	phraseService := phrase.NewService(phraseRepo)
+	phraseService := phraseSvc.New(phraseRepository)
 	groupService := group.NewService(groupRepo)
 
 	// Initialize SSE Hub

@@ -4,7 +4,7 @@ import { PhraseFeed } from "@/components/dashboard/PhraseFeed";
 import { PhraseDetailSheet } from "@/components/dashboard/PhraseDetailSheet";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Menu, Loader2 } from "lucide-react";
-import { getPhrases, type Phrase as ApiPhrase } from "@/services/phrases";
+import { getPhrases, type PhraseWithDetails } from "@/services/phrases";
 import { getGroups, type Group } from "@/services/groups";
 
 // Tipo adaptado para o componente (inclui detalhes)
@@ -34,6 +34,8 @@ const Dashboard = () => {
   const [grupos, setGrupos] = useState<GroupWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
+  const [hasMore, setHasMore] = useState(false);
   
   const [selectedPhrase, setSelectedPhrase] = useState<Phrase | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -46,20 +48,19 @@ const Dashboard = () => {
       setError(null);
       
       try {
-        const [phrasesData, groupsData] = await Promise.all([
-          getPhrases(),
+        const [phrasesResult, groupsData] = await Promise.all([
+          getPhrases({ limit: 20 }),
           getGroups()
         ]);
 
         // Adapta as frases da API para o formato do componente
-        const adaptedPhrases: Phrase[] = phrasesData.map((p: ApiPhrase) => {
+        const adaptedPhrases: Phrase[] = phrasesResult.data.map((p: PhraseWithDetails) => {
           let faviconUrl = "";
           if (p.url_origem) {
             try {
               const url = new URL(p.url_origem);
               faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}`;
             } catch {
-              // URL inválida, usa favicon genérico
               faviconUrl = "";
             }
           }
@@ -68,14 +69,14 @@ const Dashboard = () => {
             id: p.id,
             conteudo: p.conteudo,
             idioma: p.idioma_origem,
-            grupo: "Geral", // TODO: associar grupo real quando implementado
+            grupo: "Geral",
             titulo_pagina: p.titulo_pagina || "Página desconhecida",
             favicon_url: faviconUrl,
             created_at: p.capturado_em,
             detalhes: {
-              traducao_completa: "", // TODO: buscar detalhes quando implementado
-              explicacao: "",
-              fatias_traducoes: {}
+              traducao_completa: p.detalhes?.traducao_completa || "",
+              explicacao: p.detalhes?.explicacao || "",
+              fatias_traducoes: p.detalhes?.fatias_traducoes || {}
             }
           };
         });
@@ -84,11 +85,13 @@ const Dashboard = () => {
         const adaptedGroups: GroupWithCount[] = groupsData.map((g: Group) => ({
           nome: g.nome_grupo,
           cor: g.cor_etiqueta || "#22d3ee",
-          count: 0 // TODO: contar frases por grupo
+          count: 0
         }));
 
         setPhrases(adaptedPhrases);
         setGrupos(adaptedGroups);
+        setNextCursor(phrasesResult.next_cursor);
+        setHasMore(phrasesResult.has_more);
       } catch (err) {
         console.error("Error loading data:", err);
         setError(err instanceof Error ? err.message : "Erro ao carregar dados");

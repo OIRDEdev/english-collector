@@ -1,7 +1,19 @@
 import apiService from '../api';
-import type { Phrase, ApiResponse } from './types';
+import type { PhraseWithDetails, PaginatedResult, PaginationParams } from './types';
 
-export async function getPhrases(): Promise<Phrase[]> {
-  const response = await apiService.api.get<ApiResponse<Phrase[]>>('/phrases');
-  return response.data.data ?? [];
+export async function getPhrases(params?: PaginationParams): Promise<PaginatedResult<PhraseWithDetails>> {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.cursor) {
+    queryParams.set('cursor', params.cursor);
+  }
+  if (params?.limit) {
+    queryParams.set('limit', params.limit.toString());
+  }
+
+  const queryString = queryParams.toString();
+  const url = queryString ? `/phrases?${queryString}` : '/phrases';
+  
+  const response = await apiService.api.get<PaginatedResult<PhraseWithDetails>>(url);
+  return response.data;
 }
