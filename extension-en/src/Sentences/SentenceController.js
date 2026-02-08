@@ -1,5 +1,6 @@
 import { DB } from "../Database/DatabaseManager.js";
 import { detectSourceFromUrl } from "../Shared/utils/UrlUtils.js";
+import { NotificationService } from "../Offscreen/services/notification.js";
 
 /**
  * SentenceController - Manages sentence operations interacting with the Database.
@@ -19,6 +20,10 @@ export class SentenceController {
             data.context || null, 
             data.pageTitle || ""
         );
+        if(result.success) {
+            NotificationService.updateBadge(); // Update badge
+            NotificationService.notify("Phrase Captured!", data.sentences); 
+        }
         return { success: result.success };
     }
 
@@ -34,11 +39,13 @@ export class SentenceController {
 
     async delete(key, deleteFromBackend) {
         await DB.delete(key, deleteFromBackend);
+        NotificationService.updateBadge(); // Update badge
         return { success: true };
     }
 
     async clearAll() {
         await DB.clearAll();
+        NotificationService.updateBadge(); // Update badge
         return { success: true };
     }
 
@@ -48,7 +55,9 @@ export class SentenceController {
     }
 
     async syncPending() {
-        return await DB.syncPending();
+        const result = await DB.syncPending();
+        NotificationService.updateBadge(); // Update badge
+        return result;
     }
 
     /**

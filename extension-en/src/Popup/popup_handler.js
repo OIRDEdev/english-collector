@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if(elements.syncBtn) {
+    if(elements.syncBtn) {  
         elements.syncBtn.addEventListener('click', () => {
             showToast("Sincronizando...", "info");
             chrome.runtime.sendMessage({ type: "syncPending" }, (res) => {

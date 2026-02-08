@@ -3,6 +3,7 @@ import { messageBus } from "../Shared/Messaging/MessageBus.js";
 import { offscreenManager } from "../Offscreen/OffscreenManager.js";
 import { sentenceController } from "../Sentences/SentenceController.js";
 import { detectSourceFromUrl } from "../Shared/utils/UrlUtils.js";
+import { NotificationService } from "../Offscreen/services/notification.js";
 
 /**
  * Service Worker Entry Point
@@ -17,6 +18,7 @@ api.loadSavedAuth().then(loaded => {
 // ==================== OFFSCREEN & SSE HANDLING ====================
 // Initialize offscreen for SSE
 offscreenManager.setupOffscreen();
+NotificationService.updateBadge(); // Initialize badge
 
 // Handle events coming from Offscreen (SSE)
 messageBus.registerOffscreenHandler(async (request) => {
