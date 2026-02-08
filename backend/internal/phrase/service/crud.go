@@ -1,26 +1,21 @@
-package phrase
+package service
 
 import (
 	"context"
 	"fmt"
 	"strconv"
+
+	"extension-backend/internal/phrase"
 )
 
-type Service struct {
-	repo *Repository
-}
-
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
-}
-
-func (s *Service) Create(ctx context.Context, input CreateInput) (*Phrase, error) {
+// Create cria uma nova frase
+func (s *Service) Create(ctx context.Context, input phrase.CreateInput) (*phrase.Phrase, error) {
 	idioma := input.IdiomaOrigem
 	if idioma == "" {
 		idioma = "en"
 	}
 
-	p := &Phrase{
+	p := &phrase.Phrase{
 		UsuarioID:    input.UsuarioID,
 		Conteudo:     input.Conteudo,
 		IdiomaOrigem: idioma,
@@ -34,7 +29,8 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*Phrase, error
 	return p, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id string) (*Phrase, error) {
+// GetByID busca frase por ID
+func (s *Service) GetByID(ctx context.Context, id string) (*phrase.Phrase, error) {
 	intID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid id")
@@ -42,15 +38,18 @@ func (s *Service) GetByID(ctx context.Context, id string) (*Phrase, error) {
 	return s.repo.GetByID(ctx, intID)
 }
 
-func (s *Service) GetByUserID(ctx context.Context, userID int) ([]Phrase, error) {
+// GetByUserID lista frases de um usuário
+func (s *Service) GetByUserID(ctx context.Context, userID int) ([]phrase.Phrase, error) {
 	return s.repo.GetByUserID(ctx, userID)
 }
 
-func (s *Service) GetAll(ctx context.Context) ([]Phrase, error) {
+// GetAll lista todas as frases
+func (s *Service) GetAll(ctx context.Context) ([]phrase.Phrase, error) {
 	return s.repo.GetAll(ctx)
 }
 
-func (s *Service) Update(ctx context.Context, id string, input UpdateInput) (*Phrase, error) {
+// Update atualiza uma frase
+func (s *Service) Update(ctx context.Context, id string, input phrase.UpdateInput) (*phrase.Phrase, error) {
 	intID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid id")
@@ -74,6 +73,7 @@ func (s *Service) Update(ctx context.Context, id string, input UpdateInput) (*Ph
 	return p, nil
 }
 
+// Delete remove uma frase
 func (s *Service) Delete(ctx context.Context, id string) error {
 	intID, err := strconv.Atoi(id)
 	if err != nil {
@@ -82,12 +82,14 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, intID)
 }
 
-func (s *Service) Search(ctx context.Context, userID int, term string) ([]Phrase, error) {
+// Search busca frases por termo
+func (s *Service) Search(ctx context.Context, userID int, term string) ([]phrase.Phrase, error) {
 	return s.repo.Search(ctx, userID, term)
 }
 
-func (s *Service) AddDetails(ctx context.Context, input CreateDetailsInput) (*PhraseDetails, error) {
-	d := &PhraseDetails{
+// AddDetails adiciona detalhes de tradução
+func (s *Service) AddDetails(ctx context.Context, input phrase.CreateDetailsInput) (*phrase.PhraseDetails, error) {
+	d := &phrase.PhraseDetails{
 		FraseID:          input.FraseID,
 		TraducaoCompleta: input.TraducaoCompleta,
 		Explicacao:       input.Explicacao,
@@ -101,6 +103,7 @@ func (s *Service) AddDetails(ctx context.Context, input CreateDetailsInput) (*Ph
 	return d, nil
 }
 
-func (s *Service) GetDetails(ctx context.Context, phraseID int) (*PhraseDetails, error) {
+// GetDetails busca detalhes de uma frase
+func (s *Service) GetDetails(ctx context.Context, phraseID int) (*phrase.PhraseDetails, error) {
 	return s.repo.GetDetailsByPhraseID(ctx, phraseID)
 }
