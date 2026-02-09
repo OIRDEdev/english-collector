@@ -6,18 +6,18 @@ import (
 	"io"
 	"net/http"
 
-	"extension-backend/internal/ai"
+	"extension-backend/internal/ai/processor"
 	"extension-backend/internal/phrase"
 )
 
 // AIMiddleware intercepta requisições para processar traduções
 type AIMiddleware struct {
-	processor *ai.Processor
+	processor *processor.Processor
 }
 
 // NewAIMiddleware cria middleware com o processor de IA
-func NewAIMiddleware(processor *ai.Processor) *AIMiddleware {
-	return &AIMiddleware{processor: processor}
+func NewAIMiddleware(p *processor.Processor) *AIMiddleware {
+	return &AIMiddleware{processor: p}
 }
 
 type responseRecorder struct {
@@ -78,7 +78,7 @@ func (m *AIMiddleware) ProcessTranslation(next http.Handler) http.Handler {
 				Data *phrase.Phrase `json:"data"`
 			}
 			if err := json.Unmarshal(recorder.body.Bytes(), &response); err == nil && response.Data != nil && response.Data.ID != 0 {
-				m.processor.ProcessAsync(ai.ProcessRequest{
+				m.processor.ProcessAsync(processor.Request{
 					PhraseID:      response.Data.ID,
 					Conteudo:      requestData.Conteudo,
 					IdiomaOrigem:  requestData.IdiomaOrigem,
