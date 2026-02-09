@@ -8,6 +8,9 @@ import (
 	"syscall"
 
 	"extension-backend/internal/ai"
+	"extension-backend/internal/ai/processor"
+	"extension-backend/internal/ai/repository"
+	"extension-backend/internal/ai/routing"
 	"extension-backend/internal/database"
 	"extension-backend/internal/group"
 	apphttp "extension-backend/internal/http"
@@ -59,12 +62,13 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: AI service not available: %v", err)
 	} else {
-		// Create adapters for AI module dependencies
-		phraseStorer := ai.NewPhraseStorerAdapter(phraseService)
-		sseBroadcaster := ai.NewSSEBroadcasterAdapter(sseHub)
+		// Create AI module components
+		translator := processor.NewTranslator(aiService)
+		persister := processor.NewPersister(repository.NewPhraseAdapter(phraseService))
+		notifier := processor.NewNotifier(routing.NewSSEAdapter(sseHub))
 
-		// Create AI processor with injected dependencies
-		aiProcessor := ai.NewProcessor(aiService, phraseStorer, sseBroadcaster)
+		// Assemble processor
+		aiProcessor := processor.New(translator, persister, notifier)
 		aiMiddleware = middleware.NewAIMiddleware(aiProcessor)
 		log.Println("AI translation service enabled")
 	}

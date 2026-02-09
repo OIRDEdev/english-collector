@@ -1,5 +1,7 @@
 package ai
 
+import "context"
+
 // TranslationRequest representa a requisição de tradução
 type TranslationRequest struct {
 	ID            int    `json:"id"`
@@ -16,6 +18,11 @@ type TranslationResponse struct {
 	Explicacao       string            `json:"explicacao"`
 	FatiasTraducoes  map[string]string `json:"fatias_traducoes"`
 	ModeloIA         string            `json:"modelo_ia"`
+}
+
+// TranslatorService interface para tradução
+type TranslatorService interface {
+	Translate(ctx context.Context, req TranslationRequest) (*TranslationResponse, error)
 }
 
 // ResponseFormat é o formato JSON esperado da IA
