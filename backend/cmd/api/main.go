@@ -53,13 +53,19 @@ func main() {
 	sseHub.Run()
 	log.Println("SSE Hub started")
 
-	// Initialize AI service
+	// Initialize AI module
 	var aiMiddleware *middleware.AIMiddleware
 	aiService, err := ai.NewService()
 	if err != nil {
 		log.Printf("Warning: AI service not available: %v", err)
 	} else {
-		aiMiddleware = middleware.NewAIMiddleware(aiService, phraseService, sseHub)
+		// Create adapters for AI module dependencies
+		phraseStorer := ai.NewPhraseStorerAdapter(phraseService)
+		sseBroadcaster := ai.NewSSEBroadcasterAdapter(sseHub)
+
+		// Create AI processor with injected dependencies
+		aiProcessor := ai.NewProcessor(aiService, phraseStorer, sseBroadcaster)
+		aiMiddleware = middleware.NewAIMiddleware(aiProcessor)
 		log.Println("AI translation service enabled")
 	}
 

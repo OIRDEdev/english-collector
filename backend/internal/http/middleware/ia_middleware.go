@@ -2,29 +2,22 @@ package middleware
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 
 	"extension-backend/internal/ai"
 	"extension-backend/internal/phrase"
-	"extension-backend/internal/sse"
 )
 
+// AIMiddleware intercepta requisições para processar traduções
 type AIMiddleware struct {
-	aiService     *ai.Service
-	phraseService phrase.ServiceInterface
-	sseHub        *sse.Hub
+	processor *ai.Processor
 }
 
-func NewAIMiddleware(aiService *ai.Service, phraseService phrase.ServiceInterface, sseHub *sse.Hub) *AIMiddleware {
-	return &AIMiddleware{
-		aiService:     aiService,
-		phraseService: phraseService,
-		sseHub:        sseHub,
-	}
+// NewAIMiddleware cria middleware com o processor de IA
+func NewAIMiddleware(processor *ai.Processor) *AIMiddleware {
+	return &AIMiddleware{processor: processor}
 }
 
 type responseRecorder struct {
@@ -43,13 +36,15 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 	return r.ResponseWriter.Write(b)
 }
 
+// ProcessTranslation intercepta e dispara tradução assíncrona
 func (m *AIMiddleware) ProcessTranslation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if m.aiService == nil {
+		if m.processor == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
+		// Captura corpo da requisição
 		bodyBytes, _ := io.ReadAll(r.Body)
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
@@ -68,6 +63,7 @@ func (m *AIMiddleware) ProcessTranslation(next http.Handler) http.Handler {
 			requestData.IdiomaDestino = "pt-BR"
 		}
 
+		// Executa handler original
 		recorder := &responseRecorder{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
@@ -76,77 +72,20 @@ func (m *AIMiddleware) ProcessTranslation(next http.Handler) http.Handler {
 
 		next.ServeHTTP(recorder, r)
 
+		// Se sucesso, dispara tradução assíncrona
 		if recorder.statusCode >= 200 && recorder.statusCode < 300 {
-			go m.processAITranslation(
-				requestData.Conteudo,
-				requestData.IdiomaOrigem,
-				requestData.IdiomaDestino,
-				requestData.Contexto,
-				recorder.body.Bytes(),
-			)
+			var response struct {
+				Data *phrase.Phrase `json:"data"`
+			}
+			if err := json.Unmarshal(recorder.body.Bytes(), &response); err == nil && response.Data != nil && response.Data.ID != 0 {
+				m.processor.ProcessAsync(ai.ProcessRequest{
+					PhraseID:      response.Data.ID,
+					Conteudo:      requestData.Conteudo,
+					IdiomaOrigem:  requestData.IdiomaOrigem,
+					IdiomaDestino: requestData.IdiomaDestino,
+					Contexto:      requestData.Contexto,
+				})
+			}
 		}
 	})
-}
-
-func (m *AIMiddleware) processAITranslation(conteudo, idiomaOrigem, idiomaDestino, contexto string, responseBody []byte) {
-	var response struct {
-		Data *phrase.Phrase `json:"data"`
-	}
-	if err := json.Unmarshal(responseBody, &response); err != nil || response.Data == nil {
-		log.Printf("[AI] Failed to parse phrase response: %v", err)
-		return
-	}
-
-	phraseID := response.Data.ID
-	if phraseID == 0 {
-		return
-	}
-
-	ctx := context.Background()
-	aiResponse, err := m.aiService.Translate(ctx, ai.TranslationRequest{
-		ID:            phraseID,
-		Conteudo:      conteudo,
-		IdiomaOrigem:  idiomaOrigem,
-		IdiomaDestino: idiomaDestino,
-		Contexto:      contexto,
-	})
-	if err != nil {
-		log.Printf("[AI] Translation failed for phrase %d: %v", phraseID, err)
-		// Broadcast error via SSE
-		if m.sseHub != nil {
-			m.sseHub.Broadcast(sse.Event{
-				Type: "translation_error",
-				Payload: map[string]interface{}{
-					"phrase_id": phraseID,
-					"error":     err.Error(),
-				},
-			})
-		}
-		return
-	}
-
-	_, err = m.phraseService.AddDetails(ctx, phrase.CreateDetailsInput{
-		FraseID:          phraseID,
-		TraducaoCompleta: aiResponse.TraducaoCompleta,
-		Explicacao:       aiResponse.Explicacao,
-		FatiasTraducoes:  aiResponse.FatiasTraducoes,
-		ModeloIA:         aiResponse.ModeloIA,
-	})
-	if err != nil {
-		log.Printf("[AI] Failed to save details for phrase %d: %v", phraseID, err)
-		return
-	}
-
-	log.Printf("[AI] Translation saved for phrase %d", phraseID)
-
-	// Broadcast tradução via SSE
-	if m.sseHub != nil {
-		m.sseHub.BroadcastTranslation(
-			phraseID,
-			aiResponse.TraducaoCompleta,
-			aiResponse.Explicacao,
-			aiResponse.FatiasTraducoes,
-			aiResponse.ModeloIA,
-		)
-	}
 }
