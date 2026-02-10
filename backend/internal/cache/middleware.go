@@ -2,6 +2,7 @@ package cache
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"log"
@@ -63,8 +64,10 @@ func (c *Client) Middleware(prefix string, ttl time.Duration) func(http.Handler)
 
 			// Só cacheia respostas de sucesso
 			if recorder.statusCode >= 200 && recorder.statusCode < 300 {
+				body := recorder.body.String()
 				go func() {
-					if err := c.Set(ctx, key, recorder.body.String(), ttl); err != nil {
+					// Usa context.Background() pois o ctx do request é cancelado após a resposta
+					if err := c.Set(context.Background(), key, body, ttl); err != nil {
 						log.Printf("[Cache] Failed to cache %s: %v", key, err)
 					}
 				}()
