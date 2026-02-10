@@ -11,6 +11,7 @@ import (
 	"extension-backend/internal/ai/processor"
 	"extension-backend/internal/ai/repository"
 	"extension-backend/internal/ai/routing"
+	"extension-backend/internal/cache"
 	"extension-backend/internal/database"
 	"extension-backend/internal/group"
 	apphttp "extension-backend/internal/http"
@@ -56,6 +57,16 @@ func main() {
 	sseHub.Run()
 	log.Println("SSE Hub started")
 
+	// Initialize Redis cache
+	var cacheClient *cache.Client
+	cacheClient, err = cache.New()
+	if err != nil {
+		log.Printf("Warning: Redis cache not available: %v", err)
+		log.Println("Running without cache...")
+	} else {
+		defer cacheClient.Close()
+	}
+
 	// Initialize AI module
 	var aiMiddleware *middleware.AIMiddleware
 	aiService, err := ai.NewService()
@@ -78,7 +89,7 @@ func main() {
 
 	// Setup router
 	r := apphttp.NewRouter()
-	apphttp.RegisterRoutes(r, handler, aiMiddleware, sseHub)
+	apphttp.RegisterRoutes(r, handler, aiMiddleware, sseHub, cacheClient)
 
 	// Graceful shutdown
 	go func() {
@@ -86,6 +97,9 @@ func main() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
 		log.Println("\nShutting down server...")
+		if cacheClient != nil {
+			cacheClient.Close()
+		}
 		database.Close()
 		os.Exit(0)
 	}()
