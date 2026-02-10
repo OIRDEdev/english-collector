@@ -1,8 +1,7 @@
 package http
 
 import (
-	"net/http"
-
+	"extension-backend/internal/cache"
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/http/middleware"
 	"extension-backend/internal/sse"
@@ -23,7 +22,7 @@ func NewRouter() chi.Router {
 	return r
 }
 
-func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub) {
+func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub, cacheClient *cache.Client) {
 	r.Get("/health", h.HealthCheck)
 
 	// SSE endpoint para receber traduções em tempo real
@@ -35,21 +34,43 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.
 		r.Get("/", h.Welcome)
 
 		r.Route("/phrases", func(r chi.Router) {
-			r.Get("/", h.ListPhrases)
-			r.Get("/{id}", h.GetPhrase)
+			// GET routes com cache
+			if cacheClient != nil {
+				r.With(cacheClient.Middleware("phrases", cache.DefaultTTL)).Get("/", h.ListPhrases)
+				r.With(cacheClient.Middleware("phrases", cache.DefaultTTL)).Get("/{id}", h.GetPhrase)
+			} else {
+				r.Get("/", h.ListPhrases)
+				r.Get("/{id}", h.GetPhrase)
+			}
+
 			r.Delete("/{id}", h.DeletePhrase)
 
+			// Mutações com invalidação de cache
 			if aiMiddleware != nil {
-				r.With(aiMiddleware.ProcessTranslation).Post("/", h.CreatePhrase)
-				r.With(aiMiddleware.ProcessTranslation).Put("/{id}", h.UpdatePhrase)
+				if cacheClient != nil {
+					r.With(cacheClient.InvalidateOn("cache:phrases:*"), aiMiddleware.ProcessTranslation).Post("/", h.CreatePhrase)
+					r.With(cacheClient.InvalidateOn("cache:phrases:*"), aiMiddleware.ProcessTranslation).Put("/{id}", h.UpdatePhrase)
+				} else {
+					r.With(aiMiddleware.ProcessTranslation).Post("/", h.CreatePhrase)
+					r.With(aiMiddleware.ProcessTranslation).Put("/{id}", h.UpdatePhrase)
+				}
 			} else {
-				r.Post("/", h.CreatePhrase)
-				r.Put("/{id}", h.UpdatePhrase)
+				if cacheClient != nil {
+					r.With(cacheClient.InvalidateOn("cache:phrases:*")).Post("/", h.CreatePhrase)
+					r.With(cacheClient.InvalidateOn("cache:phrases:*")).Put("/{id}", h.UpdatePhrase)
+				} else {
+					r.Post("/", h.CreatePhrase)
+					r.Put("/{id}", h.UpdatePhrase)
+				}
 			}
 		})
 
 		r.Route("/users", func(r chi.Router) {
-			r.Get("/", h.ListUsers)
+			if cacheClient != nil {
+				r.With(cacheClient.Middleware("users", cache.DefaultTTL)).Get("/", h.ListUsers)
+			} else {
+				r.Get("/", h.ListUsers)
+			}
 			r.Post("/", h.CreateUser)
 			r.Get("/{id}", h.GetUser)
 			r.Put("/{id}", h.UpdateUser)
@@ -63,20 +84,15 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.
 		})
 
 		r.Route("/groups", func(r chi.Router) {
-			r.Get("/", h.ListGroups)
+			if cacheClient != nil {
+				r.With(cacheClient.Middleware("groups", cache.DefaultTTL)).Get("/", h.ListGroups)
+			} else {
+				r.Get("/", h.ListGroups)
+			}
 			r.Post("/", h.CreateGroup)
 			r.Get("/{id}", h.GetGroup)
 			r.Put("/{id}", h.UpdateGroup)
 			r.Delete("/{id}", h.DeleteGroup)
 		})
 	})
-}
-
-func wrapWithAI(aiMiddleware *middleware.AIMiddleware, handler http.HandlerFunc) http.HandlerFunc {
-	if aiMiddleware == nil {
-		return handler
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		aiMiddleware.ProcessTranslation(handler).ServeHTTP(w, r)
-	}
 }
