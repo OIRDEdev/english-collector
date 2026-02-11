@@ -7,6 +7,7 @@ export interface ExerciseData {
   level?: string;
   duration?: string;
   image?: string;
+  [key: string]: any;
 }
 
 export interface Exercise {
