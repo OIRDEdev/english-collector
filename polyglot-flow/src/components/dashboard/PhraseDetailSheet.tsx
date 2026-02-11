@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ExternalLink, Sparkles, Layers } from "lucide-react";
+import { Sparkles, Layers } from "lucide-react";
 import { useState } from "react";
 
 interface PhraseDetailSheetProps {

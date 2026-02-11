@@ -10,9 +10,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, Languages, Settings, Shield, BarChart3, Layers } from "lucide-react";
+import { Languages, Settings, Shield, BarChart3, Layers, Brain } from "lucide-react";
 
 interface Grupo {
   nome: string;
@@ -31,7 +30,6 @@ export function DashboardSidebar({
   grupos,
   activeGroup,
   onGroupSelect,
-  totalPhrases,
 }: DashboardSidebarProps) {
   const location = useLocation();
 
@@ -56,15 +54,30 @@ export function DashboardSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  isActive={!activeGroup}
+                  isActive={location.pathname === '/dashboard' && !activeGroup}
                   onClick={() => onGroupSelect(null)}
+                  asChild={location.pathname !== '/dashboard'}
                   className="cursor-pointer"
                 >
-                  <Layers className="w-4 h-4" />
-                  <span>Todas as Frases</span>
-                  <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {totalPhrases}
-                  </span>
+                  {location.pathname !== '/dashboard' ? (
+                    <Link to="/dashboard">
+                      <Layers className="w-4 h-4" />
+                      <span>Todas as Frases</span>
+                    </Link>
+                  ) : (
+                    <>
+                      <Layers className="w-4 h-4" />
+                      <span>Todas as Frases</span>
+                    </>
+                  )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/exercises'}>
+                  <Link to="/exercises">
+                    <Brain className="w-4 h-4" />
+                    <span>Exercícios</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

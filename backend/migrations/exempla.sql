@@ -148,6 +148,91 @@ CREATE TABLE logs_ia (
     CONSTRAINT fk_log_frase FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE
 );
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- ==========================================
+-- 9. TABELA DE PROGRESSO SRS (ESTILO ANKI)
+-- ==========================================
+-- Esta tabela armazena o "estado" de aprendizado de cada frase.
+CREATE TABLE anki_progresso (
+    id SERIAL PRIMARY KEY,
+    frase_id INTEGER NOT NULL UNIQUE,
+    usuario_id INTEGER NOT NULL,
+    
+    -- Parâmetros do Algoritmo (Baseado em SM-2)
+    facilidade DECIMAL(5,2) DEFAULT 2.50, -- Ease Factor: quão fácil é a frase
+    intervalo INTEGER DEFAULT 0,           -- Intervalo atual em dias
+    repeticoes INTEGER DEFAULT 0,          -- Quantas vezes foi revisada com sucesso
+    sequencia_acertos INTEGER DEFAULT 0,   -- Acertos consecutivos
+    
+    -- Controle de Tempo
+    proxima_revisao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ultima_revisao TIMESTAMP,
+    
+    -- Estado da Carta
+    estado VARCHAR(20) DEFAULT 'novo', -- 'novo', 'aprendizado', 'revisao', 'suspenso'
+    
+    CONSTRAINT fk_anki_frase FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE,
+    CONSTRAINT fk_anki_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+-- Índices para performance nas revisões diárias
+CREATE INDEX idx_anki_usuario_data ON anki_progresso(usuario_id, proxima_revisao);
+CREATE INDEX idx_anki_estado ON anki_progresso(estado);
+
+
+-- ==========================================
+-- 10. TABELA DE HISTÓRICO DE REVISÕES
+-- ==========================================
+-- Essencial para gerar os gráficos de "progresso do usuário" (heatmap, progresso diário)
+CREATE TABLE anki_historico (
+    id SERIAL PRIMARY KEY,
+    anki_id INTEGER NOT NULL,
+    usuario_id INTEGER NOT NULL,
+    
+    data_revisao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    nota INTEGER NOT NULL, -- 1 (Errei), 2 (Difícil), 3 (Bom), 4 (Fácil)
+    intervalo_anterior INTEGER,
+    novo_intervalo INTEGER,
+    
+    CONSTRAINT fk_hist_anki FOREIGN KEY (anki_id) REFERENCES anki_progresso(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hist_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_hist_usuario_data ON anki_historico(usuario_id, data_revisao);
+
+-- -- Pegar frases que precisam ser revisadas hoje, trazendo a tradução e os detalhes da IA
+--SELECT 
+--    f.conteudo, 
+--    fd.traducao_completa, 
+--    fd.fatias_traducoes,
+--    ap.facilidade,
+--    ap.repeticoes
+--FROM anki_progresso ap
+--JOIN frases f ON ap.frase_id = f.id
+--JOIN frase_detalhes fd ON f.id = fd.frase_id
+--WHERE ap.usuario_id = 1 
+--  AND ap.proxima_revisao <= CURRENT_TIMESTAMP
+--ORDER BY ap.proxima_revisao ASC;-
+
+-- ==========================================
+-- 11. TABELA DE EXERCÍCIOS POLIMÓRFICA
+-- ==========================================
+CREATE TABLE exercicios (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER, -- NULL para exercícios globais
+    tipo_componente VARCHAR(50) NOT NULL, -- 'DragAndDrop', 'ImageTap', 'WordSorter', 'Brevity'
+    
+    -- O 'payload' contém tudo que o seu componente do React/JS precisa para renderizar
+    -- Isso permite que cada tipo de exercício tenha uma estrutura de JSON completamente diferente
+    dados_exercicio JSONB NOT NULL, 
+    
+    nivel INTEGER DEFAULT 1,
+    tags TEXT[], -- ['gramatica', 'vocabulario', 'escrita']
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ex_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
 -- 1. Inserir Usuário de Teste (Senha: 'senha123' - hash simulado)
 INSERT INTO usuarios (nome, email, senha_hash, token_extensao) 
 VALUES ('Edrio', 'edrio@exemplo.com', '$$2a$13$cohNhJcAsLcQswiMIT1vX.lJ6uXsOBYXCbASYNmvmjd.izAkyMRl.', 'token');
