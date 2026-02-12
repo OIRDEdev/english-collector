@@ -95,6 +95,12 @@ func mapTipoToFrontend(tipo string) string {
 		return "Echo"
 	case "nexusconnect":
 		return "Nexus"
+	case "logicbreaker":
+		return "Logic"
+	case "keyburst":
+		return "Key"
+	case "historia":
+		return "Historia"
 	default:
 		return tipo
 	}
@@ -109,6 +115,12 @@ func mapTipoToBackend(tipo string) string {
 		return "EchoWrite"
 	case "nexus":
 		return "NexusConnect"
+	case "logic":
+		return "LogicBreaker"
+	case "key":
+		return "KeyBurst"
+	case "historia":
+		return "historia"
 	default:
 		return tipo
 	}

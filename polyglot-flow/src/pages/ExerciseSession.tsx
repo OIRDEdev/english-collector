@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ClarityExercise } from "@/components/exercises/ClarityExercise";
 import { EchoExercise } from "@/components/exercises/EchoExercise";
 import { NexusExercise } from "@/components/exercises/NexusExercise";
+import { LogicBreakerExercise } from "@/components/exercises/LogicBreakerExercise";
+import { KeyBurstExercise } from "@/components/exercises/KeyBurstExercise";
+import { HistoriaExercise } from "@/components/exercises/HistoriaExercise";
 import { ResultModal } from "@/components/exercises/ResultModal";
 import { ExitModal } from "@/components/exercises/ExitModal";
 import { exerciseService } from "@/services/exerciseService";
@@ -159,6 +162,33 @@ const ExerciseSession = () => {
 
                 {tipoLower === "nexus" && (
                     <NexusExercise 
+                        key={showResult ? 'completed' : 'active'}
+                        data={exercise.data} 
+                        onComplete={handleComplete} 
+                        onExit={handleExitRequest} 
+                    />
+                )}
+
+                {tipoLower === "logic" && (
+                    <LogicBreakerExercise 
+                        key={showResult ? 'completed' : 'active'}
+                        data={exercise.data} 
+                        onComplete={handleComplete} 
+                        onExit={handleExitRequest} 
+                    />
+                )}
+
+                {tipoLower === "key" && (
+                    <KeyBurstExercise 
+                        key={showResult ? 'completed' : 'active'}
+                        data={exercise.data} 
+                        onComplete={handleComplete} 
+                        onExit={handleExitRequest} 
+                    />
+                )}
+
+                {tipoLower === "historia" && (
+                    <HistoriaExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 
                         onComplete={handleComplete} 
