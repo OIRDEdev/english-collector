@@ -1,70 +1,47 @@
+import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { ExerciseCard, Exercise } from "@/components/exercises/ExerciseCard";
-import { Menu, Dumbbell } from "lucide-react";
+import { ExerciseCard } from "@/components/exercises/ExerciseCard";
+import { Menu, Dumbbell, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-// Mock data matching the requested structure
-const EXERCISES = [
-  {
-    "tipo": "Clarity",
-    "origem": "global",
-    "data": [
-      {
-        "id": 101,
-        "instrucao": "Remova o ruído da frase",
-        "texto_completo": "The blue water bottle is although very cold today.",
-        "palavras_erradas": ["although"],
-        "tempo_limite": 15,
-        "dificuldade": "iniciante"
-      },
-      {
-        "id": 102,
-        "frase_id": 10,
-        "instrucao": "Identifique a redundância na sua captura",
-        "texto_completo": "I am currently now working on the Go project.",
-        "palavras_erradas": ["now"],
-        "tempo_limite": 12,
-        "contexto": "Programação Go"
-      }
-    ]
-  },
-  {
-    "tipo": "Echo",
-    "origem": "personalizado",
-    "data": [
-      {
-        "id": 502,
-        "frase_id": 1,
-        "instrucao": "Ouça e digite a frase capturada",
-        "texto_total": "I don't wanna go home yet",
-        "parte_oculta": "wanna go home",
-        "texto_lacunado": "I don't ___________ yet",
-        "audio_url": "https://api.seusistema.com/audio/frase_1.mp3",
-        "fase_inicial": 1
-      }
-    ]
-  },
-  {
-    "tipo": "Nexus", // Using Nexus as type, mapped to NexusConnect
-    "origem": "global",
-    "data": [
-      {
-        "id": 205,
-        "instrucao": "Arraste para o sinônimo correto",
-        "palavra_central": "Rapid",
-        "opcoes": [
-          { "texto": "Quick", "correta": true },
-          { "texto": "Slow", "correta": false }
-        ],
-        "tema": "vocabulario_geral"
-      }
-    ]
-  }
-];
+import { exerciseService } from "@/services/exerciseService";
+import type { ExerciseGroup } from "@/types/api";
 
 const Exercises = () => {
     const navigate = useNavigate();
+    const [exercises, setExercises] = useState<ExerciseGroup[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // TODO: pegar user_id do contexto de auth quando implementado
+    const userId = 1;
+
+    useEffect(() => {
+        loadExercises();
+    }, []);
+
+    const loadExercises = async () => {
+        setLoading(true);
+        try {
+            const groups = await exerciseService.listGrouped(userId);
+            setExercises(groups);
+        } catch (error) {
+            console.error("Failed to load exercises:", error);
+            setExercises([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Mapear tipo_componente para o tipo do ExerciseCard
+    const mapTipo = (tipo: string): "Clarity" | "Echo" | "Nexus" | "Voice" => {
+        switch (tipo.toLowerCase()) {
+            case "clarity": return "Clarity";
+            case "echo": return "Echo";
+            case "nexus": return "Nexus";
+            case "voice": return "Voice";
+            default: return "Clarity";
+        }
+    };
 
     return (
         <SidebarProvider>
@@ -96,18 +73,35 @@ const Exercises = () => {
                     </header>
                     
                     <div className="flex-1 p-6 overflow-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {EXERCISES.map((group, i) => (
-                                <ExerciseCard 
-                                    key={i} 
-                                    exercise={{
-                                        ...group,
-                                        data: group.data[0] // Use first item for visual preview
-                                    } as any}
-                                    onClick={() => navigate(`/exercises/${group.tipo}/${group.data[0].id}`)} 
-                                />
-                            ))}
-                        </div>
+                        {loading ? (
+                            <div className="flex-1 flex items-center justify-center min-h-[300px]">
+                                <div className="flex flex-col items-center gap-4">
+                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                    <p className="text-muted-foreground">Carregando exercícios...</p>
+                                </div>
+                            </div>
+                        ) : exercises.length === 0 ? (
+                            <div className="flex-1 flex items-center justify-center min-h-[300px]">
+                                <div className="text-center space-y-2">
+                                    <Dumbbell className="w-12 h-12 text-muted-foreground/30 mx-auto" />
+                                    <p className="text-muted-foreground">Nenhum exercício disponível no momento.</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {exercises.map((group, i) => (
+                                    <ExerciseCard 
+                                        key={i} 
+                                        exercise={{
+                                            tipo: mapTipo(group.tipo),
+                                            origem: group.origem as "global" | "personalizado",
+                                            data: group.data[0]?.dados_exercicio ?? {},
+                                        }}
+                                        onClick={() => navigate(`/exercises/${group.tipo}/${group.data[0]?.id}`)} 
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

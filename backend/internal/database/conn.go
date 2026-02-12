@@ -38,7 +38,8 @@ func Connect() (*pgxpool.Pool, error) {
 	if err := pool.Ping(ctx); err != nil {
 		return nil, err
 	}
-	//inicializarBancoDeDados(pool)
+	//dados := inicializarBancoDeDados(pool)
+	//log.Printf("dados: %v", dados)
 	log.Println("Connected to Neon PostgreSQL")
 	return pool, nil
 }

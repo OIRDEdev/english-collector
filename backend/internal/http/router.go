@@ -94,5 +94,17 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.
 			r.Put("/{id}", h.UpdateGroup)
 			r.Delete("/{id}", h.DeleteGroup)
 		})
+
+		r.Route("/anki", func(r chi.Router) {
+			r.Get("/due", h.GetDueCards)
+			r.Post("/review", h.SubmitReview)
+			r.Get("/stats", h.GetAnkiStats)
+		})
+
+		r.Route("/exercises", func(r chi.Router) {
+			r.Get("/", h.ListExercises)
+			r.Get("/type/{tipo}", h.ListExercisesByType)
+			r.Get("/{id}", h.GetExercise)
+		})
 	})
 }
