@@ -3,16 +3,20 @@ package handlers
 import (
 	"net/http"
 
+	"extension-backend/internal/anki"
+	"extension-backend/internal/exercises"
 	"extension-backend/internal/group"
 	"extension-backend/internal/phrase"
 	"extension-backend/internal/user"
 )
 
 type Handler struct {
-	userService   user.ServiceInterface
-	phraseService phrase.ServiceInterface
-	groupService  group.ServiceInterface
-	tokenService  *user.TokenService
+	userService     user.ServiceInterface
+	phraseService   phrase.ServiceInterface
+	groupService    group.ServiceInterface
+	tokenService    *user.TokenService
+	ankiService     anki.ServiceInterface
+	exerciseService exercises.ServiceInterface
 }
 
 func NewHandler(
@@ -20,12 +24,16 @@ func NewHandler(
 	phraseService phrase.ServiceInterface,
 	groupService group.ServiceInterface,
 	tokenService *user.TokenService,
+	ankiService anki.ServiceInterface,
+	exerciseService exercises.ServiceInterface,
 ) *Handler {
 	return &Handler{
-		userService:   userService,
-		phraseService: phraseService,
-		groupService:  groupService,
-		tokenService:  tokenService,
+		userService:     userService,
+		phraseService:   phraseService,
+		groupService:    groupService,
+		tokenService:    tokenService,
+		ankiService:     ankiService,
+		exerciseService: exerciseService,
 	}
 }
 

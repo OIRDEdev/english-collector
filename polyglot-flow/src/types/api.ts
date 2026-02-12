@@ -75,3 +75,55 @@ export interface ApiError {
   error: string;
   message?: string;
 }
+
+// Anki Types
+export interface AnkiCard {
+  id: number;
+  frase_id: number;
+  conteudo: string;
+  traducao_completa: string;
+  fatias_traducoes?: Record<string, string>;
+  facilidade: number;
+  intervalo: number;
+  repeticoes: number;
+  sequencia_acertos: number;
+  estado: string;
+  proxima_revisao: string;
+}
+
+export interface AnkiReviewInput {
+  anki_id: number;
+  nota: number; // 1=Errei, 2=Difícil, 3=Bom, 4=Fácil
+}
+
+export interface AnkiReviewResult {
+  novo_intervalo: number;
+  nova_facilidade: number;
+  proxima_revisao: string;
+  estado: string;
+}
+
+export interface AnkiStats {
+  total_cards: number;
+  due_today: number;
+  novos: number;
+  aprendendo: number;
+  revisao: number;
+}
+
+// Exercise Types
+export interface ExerciseItem {
+  id: number;
+  usuario_id?: number;
+  tipo_componente: string;
+  dados_exercicio: Record<string, any>;
+  nivel: number;
+  tags: string[];
+  criado_em: string;
+}
+
+export interface ExerciseGroup {
+  tipo: string;
+  origem: string;
+  data: ExerciseItem[];
+}

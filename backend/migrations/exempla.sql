@@ -1,4 +1,4 @@
-
+/*
 -- ==========================================
 -- 1. TABELA DE USUÁRIOS
 -- ==========================================
@@ -148,7 +148,7 @@ CREATE TABLE logs_ia (
     CONSTRAINT fk_log_frase FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE
 );
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
+*/
 -- ==========================================
 -- 9. TABELA DE PROGRESSO SRS (ESTILO ANKI)
 -- ==========================================
@@ -233,6 +233,69 @@ CREATE TABLE exercicios (
     CONSTRAINT fk_ex_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
+-- 1. Frase em estado de REVISÃO (Vence hoje)
+INSERT INTO anki_progresso (frase_id, usuario_id, facilidade, intervalo, repeticoes, sequencia_acertos, proxima_revisao, estado)
+VALUES (1, 1, 2.50, 4, 3, 3, CURRENT_TIMESTAMP - INTERVAL '1 hour', 'revisao');
+
+-- 2. Frase em estado de APRENDIZADO (Vence amanhã)
+INSERT INTO anki_progresso (frase_id, usuario_id, facilidade, intervalo, repeticoes, sequencia_acertos, proxima_revisao, estado)
+VALUES (2, 1, 2.30, 1, 1, 1, CURRENT_TIMESTAMP + INTERVAL '1 day', 'aprendizado');
+
+-- 3. Frase NOVO (Nunca estudada, entra na fila)
+INSERT INTO anki_progresso (frase_id, usuario_id, estado)
+VALUES (3, 1, 'novo');
+
+INSERT INTO anki_historico (anki_id, usuario_id, nota, intervalo_anterior, novo_intervalo, data_revisao)
+VALUES 
+(1, 1, 3, 0, 1, CURRENT_TIMESTAMP - INTERVAL '10 days'),
+(1, 1, 3, 1, 2, CURRENT_TIMESTAMP - INTERVAL '7 days'),
+(1, 1, 4, 2, 4, CURRENT_TIMESTAMP - INTERVAL '4 days');
+
+-- 1. Exercício Global de Clarity Sprint (Aquecimento)
+INSERT INTO exercicios (tipo_componente, nivel, tags, dados_exercicio)
+VALUES (
+    'ClaritySprint', 
+    1, 
+    ARRAY['gramatica', 'velocidade'], 
+    '{
+        "instrucao": "Remova o ruído da frase",
+        "texto_completo": "The blue water bottle is although very cold today.",
+        "palavras_erradas": ["although"],
+        "tempo_limite": 15
+    }'::jsonb
+);
+
+-- 2. Exercício Personalizado de Echo Write (Baseado na Frase 1)
+INSERT INTO exercicios (usuario_id, tipo_componente, tags, dados_exercicio)
+VALUES (
+    1, 
+    'EchoWrite', 
+    ARRAY['escrita', 'audio'], 
+    '{
+        "instrucao": "Ouça e digite a frase capturada",
+        "texto_total": "I don''t wanna go home yet",
+        "parte_oculta": "wanna go home",
+        "texto_lacunado": "I don''t ___________ yet",
+        "audio_url": "https://api.polylang.com/audio/1.mp3"
+    }'::jsonb
+);
+
+-- 3. Exercício Global de Nexus Connect (Vocabulário)
+INSERT INTO exercicios (tipo_componente, nivel, tags, dados_exercicio)
+VALUES (
+    'NexusConnect', 
+    2, 
+    ARRAY['vocabulario'], 
+    '{
+        "instrucao": "Arraste para o sinônimo correto",
+        "palavra_central": "Rapid",
+        "opcoes": [
+            {"texto": "Quick", "correta": true},
+            {"texto": "Slow", "correta": false}
+        ]
+    }'::jsonb
+);
+/*
 -- 1. Inserir Usuário de Teste (Senha: 'senha123' - hash simulado)
 INSERT INTO usuarios (nome, email, senha_hash, token_extensao) 
 VALUES ('Edrio', 'edrio@exemplo.com', '$$2a$13$cohNhJcAsLcQswiMIT1vX.lJ6uXsOBYXCbASYNmvmjd.izAkyMRl.', 'token');
@@ -266,3 +329,4 @@ VALUES (1,
 
 -- 6. Vincular a frase ao grupo de Inglês
 INSERT INTO frase_grupos (frase_id, grupo_id) VALUES (1, 2);
+*/

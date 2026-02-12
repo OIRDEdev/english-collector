@@ -11,8 +11,12 @@ import (
 	"extension-backend/internal/ai/processor"
 	"extension-backend/internal/ai/repository"
 	"extension-backend/internal/ai/routing"
+	ankiRepo "extension-backend/internal/anki/repository"
+	ankiSvc "extension-backend/internal/anki/service"
 	"extension-backend/internal/cache"
 	"extension-backend/internal/database"
+	exRepo "extension-backend/internal/exercises/repository"
+	exSvc "extension-backend/internal/exercises/service"
 	"extension-backend/internal/group"
 	apphttp "extension-backend/internal/http"
 	"extension-backend/internal/http/handlers"
@@ -45,12 +49,16 @@ func main() {
 	refreshTokenRepo := user.NewRefreshTokenRepository(db)
 	phraseRepository := phraseRepo.New(db)
 	groupRepo := group.NewRepository(db)
+	ankiRepository := ankiRepo.New(db)
+	exerciseRepository := exRepo.New(db)
 
 	// Initialize services
 	tokenService := user.NewTokenService()
 	userService := user.NewService(userRepo, refreshTokenRepo, tokenService)
 	phraseService := phraseSvc.New(phraseRepository)
 	groupService := group.NewService(groupRepo)
+	ankiService := ankiSvc.New(ankiRepository)
+	exerciseService := exSvc.New(exerciseRepository)
 
 	// Initialize SSE Hub
 	sseHub := sse.NewHub()
@@ -85,7 +93,7 @@ func main() {
 	}
 
 	// Initialize handler
-	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService)
+	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService)
 
 	// Setup router
 	r := apphttp.NewRouter()
