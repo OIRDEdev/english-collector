@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Exercises from "./pages/Exercises";
 import ExerciseSession from "./pages/ExerciseSession";
+import HistoriaSelection from "./pages/HistoriaSelection";
 import Anki from "./pages/Anki";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/exercises" element={<Exercises />} />
+            <Route path="/exercises/Historia" element={<HistoriaSelection />} />
             <Route path="/exercises/:type/:id" element={<ExerciseSession />} />
             <Route path="/anki" element={<Anki />} />
             <Route path="*" element={<NotFound />} />

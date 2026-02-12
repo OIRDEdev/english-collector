@@ -1,4 +1,4 @@
-import { ArrowRight, Brain, Mic, Keyboard, Zap } from "lucide-react";
+import { ArrowRight, Brain, Mic, Keyboard, Zap, Search, Bug, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ExerciseData {
@@ -11,7 +11,7 @@ export interface ExerciseData {
 }
 
 export interface Exercise {
-  tipo: "Clarity" | "Echo" | "Nexus" | "Voice";
+  tipo: "Clarity" | "Echo" | "Nexus" | "Voice" | "Logic" | "Key" | "Historia";
   origem: "global" | "personalizado";
   data: ExerciseData;
 }
@@ -31,6 +31,12 @@ const getIcon = (type: string) => {
       return Brain;
     case "voice":
       return Mic;
+    case "logic":
+      return Bug;
+    case "key":
+      return Search;
+    case "historia":
+      return BookOpen;
     default:
       return Brain;
   }
@@ -46,6 +52,12 @@ const getGradient = (type: string) => {
       return "from-purple-500/20 to-pink-600/20 hover:from-purple-500/30 hover:to-pink-600/30 border-purple-500/20";
     case "voice":
       return "from-emerald-500/20 to-teal-600/20 hover:from-emerald-500/30 hover:to-teal-600/30 border-emerald-500/20";
+    case "logic":
+      return "from-rose-500/20 to-red-600/20 hover:from-rose-500/30 hover:to-red-600/30 border-rose-500/20";
+    case "key":
+      return "from-teal-500/20 to-sky-600/20 hover:from-teal-500/30 hover:to-sky-600/30 border-teal-500/20";
+    case "historia":
+      return "from-emerald-500/20 to-green-600/20 hover:from-emerald-500/30 hover:to-green-600/30 border-emerald-500/20";
     default:
       return "from-gray-500/20 to-slate-600/20 border-gray-500/20";
   }
@@ -63,6 +75,9 @@ export function ExerciseCard({ exercise, onClick }: ExerciseCardProps) {
       case "echo": return "Echo Write";
       case "nexus": return "Nexus Connect";
       case "voice": return "Voice Improvement";
+      case "logic": return "Logic Breaker";
+      case "key": return "Key Burst";
+      case "historia": return "Leitura Imersa";
       default: return exercise.tipo;
     }
   };
@@ -74,6 +89,9 @@ export function ExerciseCard({ exercise, onClick }: ExerciseCardProps) {
       case "echo": return "Pratique sua escrita repetindo padrões.";
       case "nexus": return "Conecte ideias e expanda seu vocabulário.";
       case "voice": return "Aperfeiçoe sua pronúncia e entonação.";
+      case "logic": return "Encontre a contradição lógica na frase.";
+      case "key": return "Forme a palavra correta com as letras.";
+      case "historia": return "Leia histórias e responda perguntas.";
       default: return "Exercício prático.";
     }
   };

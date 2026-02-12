@@ -33,12 +33,15 @@ const Exercises = () => {
     };
 
     // Mapear tipo_componente para o tipo do ExerciseCard
-    const mapTipo = (tipo: string): "Clarity" | "Echo" | "Nexus" | "Voice" => {
+    const mapTipo = (tipo: string): "Clarity" | "Echo" | "Nexus" | "Voice" | "Logic" | "Key" | "Historia" => {
         switch (tipo.toLowerCase()) {
             case "clarity": return "Clarity";
             case "echo": return "Echo";
             case "nexus": return "Nexus";
             case "voice": return "Voice";
+            case "logic": return "Logic";
+            case "key": return "Key";
+            case "historia": return "Historia";
             default: return "Clarity";
         }
     };
@@ -97,7 +100,14 @@ const Exercises = () => {
                                             origem: group.origem as "global" | "personalizado",
                                             data: group.data[0]?.dados_exercicio ?? {},
                                         }}
-                                        onClick={() => navigate(`/exercises/${group.tipo}/${group.data[0]?.id}`)} 
+                                        onClick={() => {
+                                            // Historia goes to selection page; others go directly to exercise
+                                            if (group.tipo.toLowerCase() === 'historia') {
+                                                navigate(`/exercises/Historia`);
+                                            } else {
+                                                navigate(`/exercises/${group.tipo}/${group.data[0]?.id}`);
+                                            }
+                                        }}
                                     />
                                 ))}
                             </div>
