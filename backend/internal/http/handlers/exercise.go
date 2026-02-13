@@ -7,24 +7,17 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// ListExercises retorna todos os exercícios agrupados por tipo
+// ListExercises retorna tipos + catálogos agrupados para a tela de exercícios
 func (h *Handler) ListExercises(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userIDStr := r.URL.Query().Get("user_id")
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		// Se não tem user_id, busca apenas globais (userID=0)
-		userID = 0
-	}
-
-	groups, err := h.exerciseService.ListGrouped(ctx, userID)
+	result, err := h.exerciseService.ListTiposComCatalogo(ctx)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	SendSuccess(w, http.StatusOK, "Exercises retrieved", groups)
+	SendSuccess(w, http.StatusOK, "Exercises catalog retrieved", result)
 }
 
 // GetExercise retorna um exercício específico por ID
@@ -47,18 +40,26 @@ func (h *Handler) GetExercise(w http.ResponseWriter, r *http.Request) {
 	SendSuccess(w, http.StatusOK, "Exercise retrieved", ex)
 }
 
-// ListExercisesByType retorna exercícios filtrados por tipo
-func (h *Handler) ListExercisesByType(w http.ResponseWriter, r *http.Request) {
+// GetExercisesByCatalogo retorna até 3 exercícios de um catálogo
+func (h *Handler) GetExercisesByCatalogo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	tipo := chi.URLParam(r, "tipo")
 
-	userIDStr := r.URL.Query().Get("user_id")
-	userID, err := strconv.Atoi(userIDStr)
+	catalogoIDStr := chi.URLParam(r, "catalogoId")
+	catalogoID, err := strconv.Atoi(catalogoIDStr)
 	if err != nil {
-		userID = 0
+		SendError(w, http.StatusBadRequest, "invalid catalogo_id")
+		return
 	}
 
-	exs, err := h.exerciseService.GetByType(ctx, userID, tipo)
+	// Ler limit query param (default 3)
+	limit := 3
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsedLimit, err := strconv.Atoi(l); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	exs, err := h.exerciseService.GetExerciciosByCatalogo(ctx, catalogoID, limit)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, err.Error())
 		return

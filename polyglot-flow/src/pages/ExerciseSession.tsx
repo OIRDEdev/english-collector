@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { X, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ClarityExercise } from "@/components/exercises/ClarityExercise";
@@ -11,19 +11,23 @@ import { HistoriaExercise } from "@/components/exercises/HistoriaExercise";
 import { ResultModal } from "@/components/exercises/ResultModal";
 import { ExitModal } from "@/components/exercises/ExitModal";
 import { exerciseService } from "@/services/exerciseService";
+import type { ExerciseItem } from "@/types/api";
 
 const ExerciseSession = () => {
     const { type, id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // State passed from Exercises.tsx
+    const navState = location.state as { exercises?: ExerciseItem[]; catalogName?: string } | null;
+
     const [exercise, setExercise] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showResult, setShowResult] = useState(false);
     const [showExit, setShowExit] = useState(false);
     const [score, setScore] = useState(0);
     const [nextId, setNextId] = useState<string | null>(null);
-
-    // TODO: pegar user_id do contexto de auth quando implementado
-    const userId = 1;
+    const [allExercises, setAllExercises] = useState<ExerciseItem[]>([]);
 
     useEffect(() => {
         loadExercise();
@@ -33,36 +37,44 @@ const ExerciseSession = () => {
         setLoading(true);
         try {
             if (!type || !id) return;
+            const exerciseId = parseInt(id, 10);
+            if (isNaN(exerciseId)) return;
 
-            const groups = await exerciseService.listGrouped(userId);
+            const catalogName = navState?.catalogName || decodeURIComponent(type);
 
-            // Find group by type (backend already maps ClaritySprint → Clarity, etc.)
-            const group = groups.find(g =>
-                g.tipo.toLowerCase() === type.toLowerCase()
-            );
+            // Use exercises from state if available, otherwise fallback to API
+            let exercises = navState?.exercises;
+            console.log(exercises);
+            if (!exercises || exercises.length === 0) {
+                // Fallback: fetch by ID and we won't have siblings
+                const ex = await exerciseService.getById(exerciseId);
 
-            if (group) {
-                // Find specific exercise in data array by ID
-                const currentIndex = group.data.findIndex((item: any) => String(item.id) === id);
+                setExercise({
+                    tipo: catalogName,
+                    data: exercises[0].dados_exercicio ?? {},
+                });
+                console.log(exercise);
+                setNextId(null);
+                setAllExercises([]);
+                return;
+            }
 
-                if (currentIndex !== -1) {
-                    const specificExercise = group.data[currentIndex];
+            setAllExercises(exercises);
 
-                    // Construct the exercise object merging group info with specific item data
-                    // Use dados_exercicio from the API (the JSONB payload)
-                    setExercise({
-                        tipo: group.tipo,
-                        origem: group.origem,
-                        data: specificExercise.dados_exercicio ?? specificExercise,
-                    });
+            // Find current exercise in the array
+            const currentIndex = exercises.findIndex(e => e.id === exerciseId);
+            const current = currentIndex !== -1 ? exercises[currentIndex] : exercises[0];
 
-                    // Check for next exercise
-                    if (currentIndex + 1 < group.data.length) {
-                        setNextId(String(group.data[currentIndex + 1].id));
-                    } else {
-                        setNextId(null);
-                    }
-                }
+            setExercise({
+                tipo: catalogName,
+                data: current.dados_exercicio ?? {},
+            });
+
+            // Set next exercise ID
+            if (currentIndex !== -1 && currentIndex + 1 < exercises.length) {
+                setNextId(String(exercises[currentIndex + 1].id));
+            } else {
+                setNextId(null);
             }
         } catch (error) {
             console.error("Failed to load exercise:", error);
@@ -92,7 +104,10 @@ const ExerciseSession = () => {
     const handleNext = () => {
         if (nextId) {
             setShowResult(false);
-            navigate(`/exercises/${type}/${nextId}`);
+            // Pass same exercises state to the next exercise
+            navigate(`/exercises/${type}/${nextId}`, {
+                state: { exercises: allExercises, catalogName: navState?.catalogName || decodeURIComponent(type || '') },
+            });
         }
     };
 
@@ -122,9 +137,25 @@ const ExerciseSession = () => {
         );
     }
 
-    // Map tipo to component name (backend sends "Clarity", "Echo", "Nexus")
-    const tipoLower = exercise.tipo.toLowerCase();
+    // Map catalog name to component key
+    const catalogName = exercise.tipo.toLowerCase();
+    
+    // Map catalog names to component identifiers
+    const getComponentKey = (name: string): string => {
+        const map: Record<string, string> = {
+            "claritysprint": "clarity",
+            "echowrite": "echo",
+            "nexusconnect": "nexus",
+            "logicbreaker": "logic",
+            "keyburst": "key",
+            "leituraimersa": "historia",
+            // Fallback: try the raw name
+        };
+        return map[name] || name;
+    };
 
+    const componentKey = getComponentKey(catalogName);
+    console.log(componentKey);
     return (
         <div className="min-h-screen bg-background relative flex flex-col">
             {/* Top Navigation Bar */}
@@ -134,7 +165,7 @@ const ExerciseSession = () => {
                 </Button>
                 
                 <div className="text-xs font-mono text-muted-foreground opacity-50 uppercase tracking-widest">
-                    {exercise.origem} • {exercise.tipo}
+                    {exercise.tipo}
                 </div>
                 
                 <div className="w-10" /> {/* Spacer for balance */}
@@ -142,7 +173,7 @@ const ExerciseSession = () => {
 
             {/* Exercise Content */}
             <main className="flex-1 flex items-center justify-center p-4 pt-20 animate-in fade-in zoom-in-95 duration-500">
-                {tipoLower === "clarity" && (
+                {componentKey === "clarity" && (
                     <ClarityExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 
@@ -151,7 +182,7 @@ const ExerciseSession = () => {
                     />
                 )}
                 
-                {tipoLower === "echo" && (
+                {componentKey === "echo" && (
                     <EchoExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 
@@ -160,7 +191,7 @@ const ExerciseSession = () => {
                     />
                 )}
 
-                {tipoLower === "nexus" && (
+                {componentKey === "nexus" && (
                     <NexusExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 
@@ -169,7 +200,7 @@ const ExerciseSession = () => {
                     />
                 )}
 
-                {tipoLower === "logic" && (
+                {componentKey === "logic" && (
                     <LogicBreakerExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 
@@ -178,7 +209,7 @@ const ExerciseSession = () => {
                     />
                 )}
 
-                {tipoLower === "key" && (
+                {componentKey === "key" && (
                     <KeyBurstExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 
@@ -187,7 +218,7 @@ const ExerciseSession = () => {
                     />
                 )}
 
-                {tipoLower === "historia" && (
+                {componentKey === "historia" && (
                     <HistoriaExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 

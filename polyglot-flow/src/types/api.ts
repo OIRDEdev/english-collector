@@ -111,19 +111,34 @@ export interface AnkiStats {
   revisao: number;
 }
 
-// Exercise Types
-export interface ExerciseItem {
+// Exercise Types — novo schema com catálogo
+
+export interface TipoExercicio {
   id: number;
-  usuario_id?: number;
-  tipo_componente: string;
-  dados_exercicio: Record<string, any>;
-  nivel: number;
-  tags: string[];
+  nome: string;
+  descricao?: string;
   criado_em: string;
 }
 
-export interface ExerciseGroup {
-  tipo: string;
-  origem: string;
-  data: ExerciseItem[];
+export interface CatalogoItem {
+  id: number;
+  nome: string;
+  descricao?: string;
+  tipo_id: number;
+  tipo_nome: string;
+  ativo: boolean;
+}
+
+export interface TipoComCatalogo {
+  tipo: TipoExercicio;
+  catalogos: CatalogoItem[];
+}
+
+export interface ExerciseItem {
+  id: number;
+  usuario_id?: number;
+  catalogo_id: number;
+  dados_exercicio: Record<string, any>;
+  nivel: number;
+  criado_em: string;
 }
