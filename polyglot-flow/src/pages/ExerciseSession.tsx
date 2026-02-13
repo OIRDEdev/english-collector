@@ -8,6 +8,9 @@ import { NexusExercise } from "@/components/exercises/NexusExercise";
 import { LogicBreakerExercise } from "@/components/exercises/LogicBreakerExercise";
 import { KeyBurstExercise } from "@/components/exercises/KeyBurstExercise";
 import { HistoriaExercise } from "@/components/exercises/HistoriaExercise";
+import { ChainExercise } from "@/components/exercises/ChainExercise";
+import { WordMemoryExercise } from "@/components/exercises/WordMemoryExercise";
+import { ConnectionExercise } from "@/components/exercises/ConnectionExercise";
 import { ResultModal } from "@/components/exercises/ResultModal";
 import { ExitModal } from "@/components/exercises/ExitModal";
 import { exerciseService } from "@/services/exerciseService";
@@ -149,6 +152,9 @@ const ExerciseSession = () => {
             "logicbreaker": "logic",
             "keyburst": "key",
             "leituraimersa": "historia",
+            "sentencechain": "chain",
+            "wordmemory": "wordmemory",
+            "connection": "connection",
             // Fallback: try the raw name
         };
         return map[name] || name;
@@ -220,6 +226,33 @@ const ExerciseSession = () => {
 
                 {componentKey === "historia" && (
                     <HistoriaExercise 
+                        key={showResult ? 'completed' : 'active'}
+                        data={exercise.data} 
+                        onComplete={handleComplete} 
+                        onExit={handleExitRequest} 
+                    />
+                )}
+
+                {componentKey === "chain" && (
+                    <ChainExercise 
+                        key={showResult ? 'completed' : 'active'}
+                        data={exercise.data} 
+                        onComplete={handleComplete} 
+                        onExit={handleExitRequest} 
+                    />
+                )}
+
+                {componentKey === "wordmemory" && (
+                    <WordMemoryExercise 
+                        key={showResult ? 'completed' : 'active'}
+                        data={exercise.data} 
+                        onComplete={handleComplete} 
+                        onExit={handleExitRequest} 
+                    />
+                )}
+
+                {componentKey === "connection" && (
+                    <ConnectionExercise 
                         key={showResult ? 'completed' : 'active'}
                         data={exercise.data} 
                         onComplete={handleComplete} 

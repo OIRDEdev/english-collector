@@ -105,6 +105,7 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.
 			r.Get("/", h.ListExercises)
 			r.Get("/catalogo/{catalogoId}", h.GetExercisesByCatalogo)
 			r.Get("/{id}", h.GetExercise)
+			r.Post("/chain/next-word", h.ChainNextWord)
 		})
 	})
 }

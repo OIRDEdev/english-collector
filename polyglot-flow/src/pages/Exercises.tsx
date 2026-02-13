@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { Menu, Dumbbell, Loader2, ChevronLeft, ChevronRight, Brain, Zap, BookOpen, Keyboard, Bug, Search, Mic, Sparkles, ArrowRight } from "lucide-react";
+import { Menu, Dumbbell, Loader2, ChevronLeft, ChevronRight, Brain, Zap, BookOpen, Keyboard, Bug, Search, Mic, Sparkles, ArrowRight, Link2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { exerciseService } from "@/services/exerciseService";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,9 @@ const CATALOG_ICONS: Record<string, any> = {
   "key burst": Search,
   "leitura imersa": BookOpen,
   "voice improvement": Mic,
+  "chainofsentence": Link2,
+  "wordmemory": Brain,
+  "connection": Sparkles,
 };
 
 const CATALOG_GRADIENTS: Record<string, string> = {
@@ -27,6 +30,9 @@ const CATALOG_GRADIENTS: Record<string, string> = {
   "key burst": "from-teal-500/20 to-sky-600/20 hover:from-teal-500/30 hover:to-sky-600/30 border-teal-500/30",
   "leitura imersa": "from-emerald-500/20 to-green-600/20 hover:from-emerald-500/30 hover:to-green-600/30 border-emerald-500/30",
   "voice improvement": "from-emerald-500/20 to-teal-600/20 hover:from-emerald-500/30 hover:to-teal-600/30 border-emerald-500/30",
+  "chainofsentence": "from-cyan-500/20 to-blue-600/20 hover:from-cyan-500/30 hover:to-blue-600/30 border-cyan-500/30",
+  "wordmemory": "from-fuchsia-500/20 to-pink-600/20 hover:from-fuchsia-500/30 hover:to-pink-600/30 border-fuchsia-500/30",
+  "connection": "from-lime-500/20 to-green-600/20 hover:from-lime-500/30 hover:to-green-600/30 border-lime-500/30",
 };
 
 const TYPE_ICONS: Record<string, any> = {
