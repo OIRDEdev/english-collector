@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { BookOpen, Clock, HelpCircle, ArrowLeft, Loader2, Tag } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { BookOpen, Clock, HelpCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { exerciseService } from "@/services/exerciseService";
@@ -8,23 +8,21 @@ import type { ExerciseItem } from "@/types/api";
 
 const HistoriaSelection = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const catalogoId = searchParams.get("catalogo");
   const [stories, setStories] = useState<ExerciseItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const userId = 1;
-
   useEffect(() => {
     loadStories();
-  }, []);
+  }, [catalogoId]);
 
   const loadStories = async () => {
     setLoading(true);
     try {
-      const groups = await exerciseService.listGrouped(userId);
-      const historiaGroup = groups.find(g => g.tipo.toLowerCase() === "historia");
-      if (historiaGroup) {
-        setStories(historiaGroup.data);
-      }
+      if (!catalogoId) return;
+      const exercises = await exerciseService.getByCatalogo(parseInt(catalogoId, 10), 20);
+      setStories(exercises);
     } catch (error) {
       console.error("Failed to load stories:", error);
     } finally {
@@ -109,7 +107,7 @@ const HistoriaSelection = () => {
               return (
                 <button
                   key={story.id}
-                  onClick={() => navigate(`/exercises/Historia/${story.id}`)}
+                  onClick={() => navigate(`/exercises/Leitura Imersa/${story.id}`)}
                   className={cn(
                     "group relative text-left bg-card/30 backdrop-blur-md rounded-2xl border border-white/5",
                     "p-6 transition-all duration-300",
@@ -151,20 +149,6 @@ const HistoriaSelection = () => {
                         {questionCount} perguntas
                       </span>
                     </div>
-
-                    {/* Tags */}
-                    {story.tags && story.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {story.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500/70 border border-emerald-500/10"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </button>
               );

@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"extension-backend/internal/exercises"
 )
@@ -25,103 +24,53 @@ func (s *Service) GetByID(ctx context.Context, id int) (*exercises.Exercicio, er
 	return ex, nil
 }
 
-// ListGrouped retorna exercícios agrupados por tipo para o frontend
-func (s *Service) ListGrouped(ctx context.Context, userID int) ([]exercises.ExerciseGroup, error) {
-	all, err := s.repo.GetAllForUser(ctx, userID)
+// ListTiposComCatalogo retorna tipos agrupados com seus catálogos
+// Usado na tela /exercises para mostrar as categorias e exercícios disponíveis
+func (s *Service) ListTiposComCatalogo(ctx context.Context) ([]exercises.TipoComCatalogo, error) {
+	tipos, err := s.repo.ListTipos(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list exercises: %w", err)
+		return nil, fmt.Errorf("failed to list tipos: %w", err)
 	}
 
-	// Agrupar por tipo_componente
-	groupMap := make(map[string]*exercises.ExerciseGroup)
-	groupOrder := []string{}
-
-	for _, ex := range all {
-		tipoFrontend := mapTipoToFrontend(ex.TipoComponente)
-
-		grp, exists := groupMap[tipoFrontend]
-		if !exists {
-			origem := "global"
-			if ex.UsuarioID != nil {
-				origem = "personalizado"
-			}
-			grp = &exercises.ExerciseGroup{
-				Tipo:   tipoFrontend,
-				Origem: origem,
-				Data:   []exercises.Exercicio{},
-			}
-			groupMap[tipoFrontend] = grp
-			groupOrder = append(groupOrder, tipoFrontend)
-		}
-
-		// Se algum exercício do grupo for personalizado, marcar como personalizado
-		if ex.UsuarioID != nil {
-			grp.Origem = "personalizado"
-		}
-
-		grp.Data = append(grp.Data, ex)
+	catalogos, err := s.repo.ListCatalogo(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list catalogo: %w", err)
 	}
 
-	// Manter ordem de inserção
-	result := make([]exercises.ExerciseGroup, 0, len(groupOrder))
-	for _, tipo := range groupOrder {
-		result = append(result, *groupMap[tipo])
+	// Agrupar catálogos por tipo_id
+	catalogoMap := make(map[int][]exercises.CatalogoItem)
+	for _, c := range catalogos {
+		catalogoMap[c.TipoID] = append(catalogoMap[c.TipoID], c)
+	}
+
+	// Montar resposta
+	var result []exercises.TipoComCatalogo
+	for _, tipo := range tipos {
+		cats := catalogoMap[tipo.ID]
+		if cats == nil {
+			cats = []exercises.CatalogoItem{}
+		}
+		result = append(result, exercises.TipoComCatalogo{
+			Tipo:      tipo,
+			Catalogos: cats,
+		})
 	}
 
 	return result, nil
 }
 
-// GetByType retorna exercícios filtrados por tipo
-func (s *Service) GetByType(ctx context.Context, userID int, tipo string) ([]exercises.Exercicio, error) {
-	// Mapear tipo do frontend para o backend se necessário
-	tipoBackend := mapTipoToBackend(tipo)
+// GetExerciciosByCatalogo retorna até `limit` exercícios de um catálogo
+func (s *Service) GetExerciciosByCatalogo(ctx context.Context, catalogoID int, limit int) ([]exercises.Exercicio, error) {
+	if limit <= 0 || limit > 10 {
+		limit = 3
+	}
 
-	exs, err := s.repo.GetByType(ctx, tipoBackend, userID)
+	exs, err := s.repo.GetByCatalogoID(ctx, catalogoID, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get exercises by type: %w", err)
+		return nil, fmt.Errorf("failed to get exercises for catalogo %d: %w", catalogoID, err)
 	}
 	if exs == nil {
 		exs = []exercises.Exercicio{}
 	}
 	return exs, nil
-}
-
-// mapTipoToFrontend converte nomes do banco para nomes do frontend
-func mapTipoToFrontend(tipo string) string {
-	switch strings.ToLower(tipo) {
-	case "claritysprint":
-		return "Clarity"
-	case "echowrite":
-		return "Echo"
-	case "nexusconnect":
-		return "Nexus"
-	case "logicbreaker":
-		return "Logic"
-	case "keyburst":
-		return "Key"
-	case "historia":
-		return "Historia"
-	default:
-		return tipo
-	}
-}
-
-// mapTipoToBackend converte nomes do frontend para nomes do banco
-func mapTipoToBackend(tipo string) string {
-	switch strings.ToLower(tipo) {
-	case "clarity":
-		return "ClaritySprint"
-	case "echo":
-		return "EchoWrite"
-	case "nexus":
-		return "NexusConnect"
-	case "logic":
-		return "LogicBreaker"
-	case "key":
-		return "KeyBurst"
-	case "historia":
-		return "historia"
-	default:
-		return tipo
-	}
 }

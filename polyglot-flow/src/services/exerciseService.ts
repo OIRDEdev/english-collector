@@ -1,5 +1,5 @@
 import apiService from './api';
-import type { ExerciseGroup, ExerciseItem } from '@/types/api';
+import type { TipoComCatalogo, ExerciseItem } from '@/types/api';
 
 interface ApiResponse<T> {
   message: string;
@@ -7,20 +7,23 @@ interface ApiResponse<T> {
 }
 
 export const exerciseService = {
-  listGrouped: async (userId: number): Promise<ExerciseGroup[]> => {
-    const response = await apiService.api.get<ApiResponse<ExerciseGroup[]>>(`/exercises?user_id=${userId}`);
+  // Lista tipos com catálogos (para a tela /exercises)
+  listCatalog: async (): Promise<TipoComCatalogo[]> => {
+    const response = await apiService.api.get<ApiResponse<TipoComCatalogo[]>>('/exercises');
     return response.data.data;
   },
 
+  // Pega exercícios de um catálogo (quando clica "Iniciar")
+  getByCatalogo: async (catalogoId: number, limit = 3): Promise<ExerciseItem[]> => {
+    const response = await apiService.api.get<ApiResponse<ExerciseItem[]>>(
+      `/exercises/catalogo/${catalogoId}?limit=${limit}`
+    );
+    return response.data.data;
+  },
+
+  // Pega um exercício por ID
   getById: async (id: number): Promise<ExerciseItem> => {
     const response = await apiService.api.get<ApiResponse<ExerciseItem>>(`/exercises/${id}`);
-    return response.data.data;
-  },
-
-  getByType: async (tipo: string, userId: number): Promise<ExerciseItem[]> => {
-    const response = await apiService.api.get<ApiResponse<ExerciseItem[]>>(
-      `/exercises/type/${tipo}?user_id=${userId}`
-    );
     return response.data.data;
   },
 };

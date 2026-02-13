@@ -17,10 +17,95 @@ func New(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
+// ── Tipos ──────────────────────────────────────────────────────
+
+// ListTipos retorna todos os tipos de exercício
+func (r *Repository) ListTipos(ctx context.Context) ([]exercises.TipoExercicio, error) {
+	query := `
+		SELECT id, nome, COALESCE(descricao, ''), criado_em
+		FROM tipos_exercicio
+		ORDER BY id
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []exercises.TipoExercicio
+	for rows.Next() {
+		var t exercises.TipoExercicio
+		if err := rows.Scan(&t.ID, &t.Nome, &t.Descricao, &t.CriadoEm); err != nil {
+			return nil, err
+		}
+		list = append(list, t)
+	}
+	return list, rows.Err()
+}
+
+// ── Catálogo ───────────────────────────────────────────────────
+
+// ListCatalogo retorna todos os itens do catálogo com o nome do tipo
+func (r *Repository) ListCatalogo(ctx context.Context) ([]exercises.CatalogoItem, error) {
+	query := `
+		SELECT c.id, c.nome, COALESCE(c.descricao, ''), c.tipo_id, t.nome, c.ativo
+		FROM exercicios_catalogo c
+		JOIN tipos_exercicio t ON t.id = c.tipo_id
+		WHERE c.ativo = true
+		ORDER BY c.tipo_id, c.nome
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []exercises.CatalogoItem
+	for rows.Next() {
+		var item exercises.CatalogoItem
+		if err := rows.Scan(&item.ID, &item.Nome, &item.Descricao, &item.TipoID, &item.TipoNome, &item.Ativo); err != nil {
+			return nil, err
+		}
+		list = append(list, item)
+	}
+	return list, rows.Err()
+}
+
+// GetCatalogoByTipo retorna catálogos filtrados por tipo
+func (r *Repository) GetCatalogoByTipo(ctx context.Context, tipoID int) ([]exercises.CatalogoItem, error) {
+	query := `
+		SELECT c.id, c.nome, COALESCE(c.descricao, ''), c.tipo_id, t.nome, c.ativo
+		FROM exercicios_catalogo c
+		JOIN tipos_exercicio t ON t.id = c.tipo_id
+		WHERE c.tipo_id = $1 AND c.ativo = true
+		ORDER BY c.nome
+	`
+
+	rows, err := r.db.Query(ctx, query, tipoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []exercises.CatalogoItem
+	for rows.Next() {
+		var item exercises.CatalogoItem
+		if err := rows.Scan(&item.ID, &item.Nome, &item.Descricao, &item.TipoID, &item.TipoNome, &item.Ativo); err != nil {
+			return nil, err
+		}
+		list = append(list, item)
+	}
+	return list, rows.Err()
+}
+
+// ── Exercícios ─────────────────────────────────────────────────
+
 // GetByID busca um exercício pelo ID
 func (r *Repository) GetByID(ctx context.Context, id int) (*exercises.Exercicio, error) {
 	query := `
-		SELECT id, usuario_id, tipo_componente, dados_exercicio, nivel, tags, criado_em
+		SELECT id, usuario_id, catalogo_id, dados_exercicio, nivel, criado_em
 		FROM exercicios
 		WHERE id = $1
 	`
@@ -29,8 +114,8 @@ func (r *Repository) GetByID(ctx context.Context, id int) (*exercises.Exercicio,
 	var dadosJSON []byte
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&ex.ID, &ex.UsuarioID, &ex.TipoComponente,
-		&dadosJSON, &ex.Nivel, &ex.Tags, &ex.CriadoEm,
+		&ex.ID, &ex.UsuarioID, &ex.CatalogoID,
+		&dadosJSON, &ex.Nivel, &ex.CriadoEm,
 	)
 	if err != nil {
 		return nil, err
@@ -43,60 +128,31 @@ func (r *Repository) GetByID(ctx context.Context, id int) (*exercises.Exercicio,
 	return &ex, nil
 }
 
-// GetByType busca exercícios por tipo (globais + do usuário)
-func (r *Repository) GetByType(ctx context.Context, tipo string, userID int) ([]exercises.Exercicio, error) {
+// GetByCatalogoID busca exercícios de um catálogo, limitando a N
+func (r *Repository) GetByCatalogoID(ctx context.Context, catalogoID int, limit int) ([]exercises.Exercicio, error) {
 	query := `
-		SELECT id, usuario_id, tipo_componente, dados_exercicio, nivel, tags, criado_em
+		SELECT id, usuario_id, catalogo_id, dados_exercicio, nivel, criado_em
 		FROM exercicios
-		WHERE tipo_componente = $1 
-		  AND (usuario_id IS NULL OR usuario_id = $2)
+		WHERE catalogo_id = $1
 		ORDER BY nivel ASC
+		LIMIT $2
 	`
 
-	rows, err := r.db.Query(ctx, query, tipo, userID)
+	rows, err := r.db.Query(ctx, query, catalogoID, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	return scanExercicios(rows)
-}
-
-// GetAllForUser busca todos os exercícios (globais + do usuário)
-func (r *Repository) GetAllForUser(ctx context.Context, userID int) ([]exercises.Exercicio, error) {
-	query := `
-		SELECT id, usuario_id, tipo_componente, dados_exercicio, nivel, tags, criado_em
-		FROM exercicios
-		WHERE usuario_id IS NULL OR usuario_id = $1
-		ORDER BY tipo_componente, nivel ASC
-	`
-
-	rows, err := r.db.Query(ctx, query, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return scanExercicios(rows)
-}
-
-// scanExercicios faz scan de múltiplas rows para []Exercicio
-func scanExercicios(rows interface {
-	Next() bool
-	Scan(dest ...interface{}) error
-	Err() error
-}) ([]exercises.Exercicio, error) {
 	var list []exercises.Exercicio
-
 	for rows.Next() {
 		var ex exercises.Exercicio
 		var dadosJSON []byte
 
-		err := rows.Scan(
-			&ex.ID, &ex.UsuarioID, &ex.TipoComponente,
-			&dadosJSON, &ex.Nivel, &ex.Tags, &ex.CriadoEm,
-		)
-		if err != nil {
+		if err := rows.Scan(
+			&ex.ID, &ex.UsuarioID, &ex.CatalogoID,
+			&dadosJSON, &ex.Nivel, &ex.CriadoEm,
+		); err != nil {
 			return nil, err
 		}
 
@@ -106,6 +162,5 @@ func scanExercicios(rows interface {
 
 		list = append(list, ex)
 	}
-
 	return list, rows.Err()
 }

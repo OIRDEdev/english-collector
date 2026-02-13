@@ -103,7 +103,7 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.
 
 		r.Route("/exercises", func(r chi.Router) {
 			r.Get("/", h.ListExercises)
-			r.Get("/type/{tipo}", h.ListExercisesByType)
+			r.Get("/catalogo/{catalogoId}", h.GetExercisesByCatalogo)
 			r.Get("/{id}", h.GetExercise)
 		})
 	})

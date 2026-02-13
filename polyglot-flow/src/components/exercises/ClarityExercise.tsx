@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { X, Check, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +8,7 @@ interface ClarityData {
   instrucao: string;
   texto_completo: string;
   palavras_erradas: string[];
-  tempo_limite: number;
+  tempo_leitura: number;
   dificuldade: string;
 }
 
@@ -21,12 +20,12 @@ interface ClarityExerciseProps {
 
 export function ClarityExercise({ data, onComplete, onExit }: ClarityExerciseProps) {
   const [words, setWords] = useState<{ text: string; id: number; removed: boolean }[]>([]);
-  const [timeLeft, setTimeLeft] = useState(data.tempo_limite);
+  const [timeLeft, setTimeLeft] = useState(data.tempo_leitura);
   const [isActive, setIsActive] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-
+  console.log(data);
   useEffect(() => {
-    // Split text into words, keeping punctuation attached if possible or splitting smartly
+    console.log(data);
     const splitWords = data.texto_completo.split(" ").map((w, i) => ({
       text: w,
       id: i,
@@ -109,7 +108,7 @@ export function ClarityExercise({ data, onComplete, onExit }: ClarityExercisePro
                     stroke="currentColor" strokeWidth="4"
                     fill="transparent"
                     strokeDasharray={2 * Math.PI * 28}
-                    strokeDashoffset={2 * Math.PI * 28 * (1 - timeLeft / data.tempo_limite)}
+                    strokeDashoffset={2 * Math.PI * 28 * (1 - timeLeft / data.tempo_leitura)}
                     className={cn(
                         "text-amber-500 transition-all duration-1000 ease-linear",
                         timeLeft < 5 && "text-red-500"
