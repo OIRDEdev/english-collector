@@ -26,4 +26,13 @@ export const exerciseService = {
     const response = await apiService.api.get<ApiResponse<ExerciseItem>>(`/exercises/${id}`);
     return response.data.data;
   },
+
+  // Chain exercise: pega a próxima palavra da IA
+  chainNextWord: async (sentenceSoFar: string): Promise<{ nextword: string }> => {
+    const response = await apiService.api.post<ApiResponse<{ nextword: string }>>(
+      '/exercises/chain/next-word',
+      { sentence_so_far: sentenceSoFar }
+    );
+    return response.data.data;
+  },
 };

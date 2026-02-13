@@ -93,7 +93,7 @@ func main() {
 	}
 
 	// Initialize handler
-	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService)
+	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService, aiService)
 
 	// Setup router
 	r := apphttp.NewRouter()
