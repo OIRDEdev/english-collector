@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Languages, Settings, Shield, BarChart3, Layers, Brain, GalleryVerticalEnd } from "lucide-react";
+import { Languages, Settings, Shield, BarChart3, Layers, Brain, GalleryVerticalEnd, MessageCircle } from "lucide-react";
 
 interface Grupo {
   nome: string;
@@ -77,6 +77,14 @@ export function DashboardSidebar({
                   <Link to="/exercises">
                     <Brain className="w-4 h-4" />
                     <span>Exercícios</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/conversation'}>
+                  <Link to="/conversation">
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Conversation</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

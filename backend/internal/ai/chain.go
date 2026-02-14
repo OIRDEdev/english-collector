@@ -34,7 +34,7 @@ Rules:
 - Keep the sentence coherent and heading toward a natural conclusion
 - Do NOT repeat the same word consecutively
 - Do NOT add punctuation as a separate word; attach it to the word if needed (e.g. "happy." to end a sentence)
-- If the sentence feels complete (8+ words), you may add a final word with a period to end it
+- If the sentence feels complete (10+ words), you may add a final word with a period to end it
 - Do NOT include any explanation, markdown, or extra text
 - Respond ONLY with the JSON object
 
