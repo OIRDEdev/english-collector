@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -12,6 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Languages, Settings, Shield, BarChart3, Layers, Brain, GalleryVerticalEnd, MessageCircle } from "lucide-react";
+import { SettingsModal } from "@/components/settings/SettingsModal";
 
 interface Grupo {
   nome: string;
@@ -32,8 +34,10 @@ export function DashboardSidebar({
   onGroupSelect,
 }: DashboardSidebarProps) {
   const location = useLocation();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
+    <>
     <Sidebar className="border-r border-border/50">
       <SidebarHeader className="border-b border-border/50 p-4">
         <Link to="/" className="flex items-center gap-2">
@@ -153,11 +157,12 @@ export function DashboardSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/dashboard">
-                    <Settings className="w-4 h-4" />
-                    <span>Preferências</span>
-                  </Link>
+                <SidebarMenuButton
+                  onClick={() => setSettingsOpen(true)}
+                  className="cursor-pointer"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Preferências</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -177,5 +182,8 @@ export function DashboardSidebar({
         </div>
       </SidebarFooter>
     </Sidebar>
+
+    <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    </>
   );
 }
