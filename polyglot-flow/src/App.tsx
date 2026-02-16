@@ -11,6 +11,7 @@ import ExerciseSession from "./pages/ExerciseSession";
 import HistoriaSelection from "./pages/HistoriaSelection";
 import Anki from "./pages/Anki";
 import Conversation from "./pages/Conversation";
+import Onboarding from "./pages/Onboarding";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/exercises/:type/:id" element={<ExerciseSession />} />
             <Route path="/anki" element={<Anki />} />
             <Route path="/conversation" element={<Conversation />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

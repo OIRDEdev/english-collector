@@ -35,8 +35,8 @@ type Exercicio struct {
 // CatalogoItem junta catálogo + tipo para listagem no frontend
 type CatalogoItem struct {
 	ID          int    `json:"id"`
-	Nome        string `json:"nome"`
 	Descricao   string `json:"descricao,omitempty"`
+	Nome        string `json:"nome"`
 	TipoID      int    `json:"tipo_id"`
 	TipoNome    string `json:"tipo_nome"`
 	Ativo       bool   `json:"ativo"`
