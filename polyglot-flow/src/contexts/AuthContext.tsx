@@ -20,31 +20,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check for existing session on mount
-    const storedUser = apiService.getUser();
-    if (storedUser && apiService.isAuthenticated()) {
-      setUser(storedUser);
-    }
-    setIsLoading(false);
+    const initAuth = async () => {
+        const user = await apiService.checkAuth();
+        if (user) {
+            setUser(user);
+        }
+        setIsLoading(false);
+    };
+    initAuth();
   }, []);
 
   const login = useCallback(async (email: string, senha: string) => {
-    const response = await apiService.login({ email, senha });
-    setUser(response.user);
+    await apiService.login({ email, senha });
+    setUser(apiService.getUser());
   }, []);
 
   const loginWithGoogle = useCallback(async (credential: string) => {
-    const response = await apiService.loginWithGoogle(credential);
-    setUser(response.user);
+    await apiService.loginWithGoogle(credential);
+    setUser(apiService.getUser());
   }, []);
 
   const register = useCallback(async (nome: string, email: string, senha: string) => {
-    const response = await apiService.register({ nome, email, senha });
-    setUser(response.user);
+    await apiService.register({ nome, email, senha });
+    setUser(apiService.getUser());
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await apiService.logout();
     setUser(null);
-    apiService.logout();
   }, []);
 
   return (

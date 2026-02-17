@@ -1,6 +1,7 @@
 package http
 
 import (
+	"extension-backend/internal/auth"
 	"extension-backend/internal/cache"
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/http/middleware"
@@ -22,7 +23,7 @@ func NewRouter() chi.Router {
 	return r
 }
 
-func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub, cacheClient *cache.Client) {
+func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub, cacheClient *cache.Client) {
 	r.Get("/health", h.HealthCheck)
 
 	// SSE endpoint para receber traduções em tempo real
@@ -78,9 +79,12 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, aiMiddleware *middleware.
 		})
 
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/login", h.Login)
-			r.Post("/register", h.Register)
-			r.Post("/refresh", h.RefreshToken)
+			r.Post("/login", authHandler.Login)
+			r.Post("/register", authHandler.Register)
+			r.Post("/google", authHandler.GoogleLogin) // New
+			r.Post("/refresh", authHandler.RefreshToken)
+			r.Post("/logout", authHandler.Logout) // New
+            r.Get("/me", authHandler.Me) // New
 		})
 
 		r.Route("/groups", func(r chi.Router) {

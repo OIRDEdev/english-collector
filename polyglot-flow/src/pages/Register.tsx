@@ -52,7 +52,7 @@ const Register = () => {
     try {
       await register(nome, email, senha);
       toast.success("Conta criada com sucesso!");
-      navigate("/dashboard");
+      navigate("/onboarding");
     } catch (error: any) {
       const message = error.response?.data?.error || "Erro ao criar conta. Tente novamente.";
       toast.error(message);

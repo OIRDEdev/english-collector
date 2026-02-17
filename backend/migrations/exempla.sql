@@ -1,332 +1,248 @@
-/*
--- ==========================================
--- 1. TABELA DE USUÁRIOS
--- ==========================================
-CREATE TABLE usuarios (
-    id SERIAL PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    email VARCHAR(150) UNIQUE NOT NULL,
-    senha_hash VARCHAR(255) NOT NULL,
-    token_extensao VARCHAR(255) UNIQUE, -- Chave de acesso para a extensão
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
--- Índice para login e validação de token da extensão
-CREATE INDEX idx_usuarios_email ON usuarios(email);
-CREATE INDEX idx_usuarios_token ON usuarios(token_extensao);
-
-
--- ==========================================
--- 2. TABELA DE FRASES (O Coração do Sistema)
--- ==========================================
-CREATE TABLE frases (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER NOT NULL,
-    conteudo TEXT NOT NULL,
-    idioma_origem VARCHAR(10) DEFAULT 'en',
-    url_origem TEXT,
-    titulo_pagina VARCHAR(255),
-    capturado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT fk_usuario_frase FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
--- Índice para carregar rápido o dashboard do usuário
-CREATE INDEX idx_frases_usuario ON frases(usuario_id);
--- Índice para buscas textuais (ajuda a achar palavras dentro das frases)
-CREATE INDEX idx_frases_busca_texto ON frases USING gin(to_tsvector('simple', conteudo));
-
-
--- ==========================================
--- 3. TABELA DE TRADUÇÕES (O Cache de IA)
--- ==========================================
-CREATE TABLE frase_detalhes (
-    id SERIAL PRIMARY KEY,
-    frase_id INTEGER NOT NULL UNIQUE, -- Um detalhe para cada frase
-    traducao_completa TEXT NOT NULL,
-    explicacao TEXT,
-    
-    -- Aqui entra o seu JSON com as fatias (slices_translations)
-    -- Ex: {"no description": "sem descrição", "website": "site"}
-    fatias_traducoes JSONB, 
-    
-    modelo_ia VARCHAR(50), -- Guardar se foi GPT-4, Gemini, etc.
-    processado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_detalhe_frase FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE
-);
-
--- O índice para o seu "cache" já é criado automaticamente pela constraint UNIQUE acima.
--- Se você quiser listar tudo que foi traduzido para um idioma específico:
-CREATE INDEX idx_traducoes_idioma_dest ON frase_detalhes(traducao_completa);
-CREATE INDEX idx_fatias_traducoes ON frase_detalhes USING GIN (fatias_traducoes);
--- ==========================================
--- 4. TABELA DE PREFERÊNCIAS DO USUÁRIO
--- ==========================================
--- Centraliza as configurações de interface e automação de IA
-CREATE TABLE preferencias_usuario (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER UNIQUE NOT NULL, -- Um registro de preferência por usuário
-    idioma_padrao_traducao VARCHAR(10) DEFAULT 'pt-BR',
-    auto_traduzir BOOLEAN DEFAULT FALSE, -- Se TRUE, o backend traduz assim que a extensão envia
-    tema_interface VARCHAR(20) DEFAULT 'dark', -- 'light', 'dark', 'system'
-    
-    CONSTRAINT fk_usuario_pref
-        FOREIGN KEY (usuario_id) 
-        REFERENCES usuarios(id) 
-        ON DELETE CASCADE
-);
-
--- ==========================================
--- 5. TABELA DE GRUPOS (Coleções/Tags Agrupadas)
--- ==========================================
-CREATE TABLE grupos (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER NOT NULL,
-    nome_grupo VARCHAR(100) NOT NULL,
-    descricao TEXT,
-    cor_etiqueta VARCHAR(7), -- Para exibir no site (Ex: #FF5733)
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_usuario_grupo
-        FOREIGN KEY (usuario_id) 
-        REFERENCES usuarios(id) 
-        ON DELETE CASCADE
-);
-
--- Índice para carregar os grupos do usuário rapidamente no menu lateral do site
-CREATE INDEX idx_grupos_usuario ON grupos(usuario_id);
-
--- ==========================================
--- 6. RELAÇÃO FRASE -> GRUPO (Tabela Intermediária)
--- ==========================================
--- Criamos uma tabela de ligação para que uma frase possa pertencer a mais de um grupo
-CREATE TABLE frase_grupos (
-    frase_id INTEGER NOT NULL,
-    grupo_id INTEGER NOT NULL,
-    
-    PRIMARY KEY (frase_id, grupo_id),
-    CONSTRAINT fk_frase_ligacao FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE,
-    CONSTRAINT fk_grupo_ligacao FOREIGN KEY (grupo_id) REFERENCES grupos(id) ON DELETE CASCADE
-);
-
--- ==========================================
--- 7. TABELA DE REFRESH TOKENS
--- ==========================================
-CREATE TABLE refresh_tokens (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER NOT NULL,
-    token VARCHAR(255) UNIQUE NOT NULL,
-    expira_em TIMESTAMP NOT NULL,
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    revogado BOOLEAN DEFAULT FALSE, -- Para deslogar o usuário remotamente se necessário
-    
-    CONSTRAINT fk_usuario_refresh FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
--- Índices essenciais
--- 1. Busca rápida pelo token durante a renovação do Access Token
-CREATE INDEX idx_refresh_token_string ON refresh_tokens(token);
-
--- 2. Para encontrar e invalidar todos os tokens de um usuário específico
-CREATE INDEX idx_refresh_token_usuario ON refresh_tokens(usuario_id);
-
--- ==========================================
--- 8. TABELA DE LOGS DE IA
--- ==========================================
-CREATE TABLE logs_ia (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER NOT NULL,
-    frase_id INTEGER NOT NULL,
-    modelo_utilizado VARCHAR(50),
-    tokens_prompt INTEGER, -- Quantas palavras você mandou
-    tokens_completion INTEGER, -- Quantas palavras a IA respondeu
-    custo_estimado DECIMAL(10, 5),
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_log_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-    CONSTRAINT fk_log_frase FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE
-);
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-*/
--- ==========================================
--- 9. TABELA DE PROGRESSO SRS (ESTILO ANKI)
--- ==========================================
--- Esta tabela armazena o "estado" de aprendizado de cada frase.
-CREATE TABLE anki_progresso (
-    id SERIAL PRIMARY KEY,
-    frase_id INTEGER NOT NULL UNIQUE,
-    usuario_id INTEGER NOT NULL,
-    
-    -- Parâmetros do Algoritmo (Baseado em SM-2)
-    facilidade DECIMAL(5,2) DEFAULT 2.50, -- Ease Factor: quão fácil é a frase
-    intervalo INTEGER DEFAULT 0,           -- Intervalo atual em dias
-    repeticoes INTEGER DEFAULT 0,          -- Quantas vezes foi revisada com sucesso
-    sequencia_acertos INTEGER DEFAULT 0,   -- Acertos consecutivos
-    
-    -- Controle de Tempo
-    proxima_revisao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ultima_revisao TIMESTAMP,
-    
-    -- Estado da Carta
-    estado VARCHAR(20) DEFAULT 'novo', -- 'novo', 'aprendizado', 'revisao', 'suspenso'
-    
-    CONSTRAINT fk_anki_frase FOREIGN KEY (frase_id) REFERENCES frases(id) ON DELETE CASCADE,
-    CONSTRAINT fk_anki_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
--- Índices para performance nas revisões diárias
-CREATE INDEX idx_anki_usuario_data ON anki_progresso(usuario_id, proxima_revisao);
-CREATE INDEX idx_anki_estado ON anki_progresso(estado);
-
-
--- ==========================================
--- 10. TABELA DE HISTÓRICO DE REVISÕES
--- ==========================================
--- Essencial para gerar os gráficos de "progresso do usuário" (heatmap, progresso diário)
 CREATE TABLE anki_historico (
-    id SERIAL PRIMARY KEY,
-    anki_id INTEGER NOT NULL,
-    usuario_id INTEGER NOT NULL,
-    
-    data_revisao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    nota INTEGER NOT NULL, -- 1 (Errei), 2 (Difícil), 3 (Bom), 4 (Fácil)
-    intervalo_anterior INTEGER,
-    novo_intervalo INTEGER,
-    
-    CONSTRAINT fk_hist_anki FOREIGN KEY (anki_id) REFERENCES anki_progresso(id) ON DELETE CASCADE,
-    CONSTRAINT fk_hist_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    id integer NOT NULL,
+    anki_id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    data_revisao timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    nota integer NOT NULL,
+    intervalo_anterior integer,
+    novo_intervalo integer
 );
 
-CREATE INDEX idx_hist_usuario_data ON anki_historico(usuario_id, data_revisao);
 
--- -- Pegar frases que precisam ser revisadas hoje, trazendo a tradução e os detalhes da IA
---SELECT 
---    f.conteudo, 
---    fd.traducao_completa, 
---    fd.fatias_traducoes,
---    ap.facilidade,
---    ap.repeticoes
---FROM anki_progresso ap
---JOIN frases f ON ap.frase_id = f.id
---JOIN frase_detalhes fd ON f.id = fd.frase_id
---WHERE ap.usuario_id = 1 
---  AND ap.proxima_revisao <= CURRENT_TIMESTAMP
---ORDER BY ap.proxima_revisao ASC;-
+ALTER TABLE anki_historico OWNER TO neondb_owner;
 
--- ==========================================
--- 11. TABELA DE EXERCÍCIOS POLIMÓRFICA
--- ==========================================
+
+CREATE TABLE anki_progresso (
+    id integer NOT NULL,
+    frase_id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    facilidade numeric(5,2) DEFAULT 2.50,
+    intervalo integer DEFAULT 0,
+    repeticoes integer DEFAULT 0,
+    sequencia_acertos integer DEFAULT 0,
+    proxima_revisao timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    ultima_revisao timestamp without time zone,
+    estado varchar(20) DEFAULT 'novo'::varchar
+);
+
+
+
+CREATE TABLE assinaturas (
+    id integer NOT NULL,
+    usuario_principal_id integer NOT NULL,
+    plano_id integer NOT NULL,
+    status varchar(30) NOT NULL,
+    infinitypay_subscription_id varchar(255),
+    iniciado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    expira_em timestamp without time zone,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE conta_usuarios (
+    id integer NOT NULL,
+    usuario_principal_id integer NOT NULL,
+    usuario_vinculado_id integer NOT NULL,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE exercicios (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER, -- NULL para exercícios globais
-    tipo_componente VARCHAR(50) NOT NULL, -- 'DragAndDrop', 'ImageTap', 'WordSorter', 'Brevity'
-    
-    -- O 'payload' contém tudo que o seu componente do React/JS precisa para renderizar
-    -- Isso permite que cada tipo de exercício tenha uma estrutura de JSON completamente diferente
-    dados_exercicio JSONB NOT NULL, 
-    
-    nivel INTEGER DEFAULT 1,
-    tags TEXT[], -- ['gramatica', 'vocabulario', 'escrita']
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_ex_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    id integer NOT NULL,
+    usuario_id integer,
+    dados_exercicio jsonb NOT NULL,
+    nivel integer DEFAULT 1,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    catalogo_id integer
 );
 
--- 1. Frase em estado de REVISÃO (Vence hoje)
-INSERT INTO anki_progresso (frase_id, usuario_id, facilidade, intervalo, repeticoes, sequencia_acertos, proxima_revisao, estado)
-VALUES (1, 1, 2.50, 4, 3, 3, CURRENT_TIMESTAMP - INTERVAL '1 hour', 'revisao');
 
--- 2. Frase em estado de APRENDIZADO (Vence amanhã)
-INSERT INTO anki_progresso (frase_id, usuario_id, facilidade, intervalo, repeticoes, sequencia_acertos, proxima_revisao, estado)
-VALUES (2, 1, 2.30, 1, 1, 1, CURRENT_TIMESTAMP + INTERVAL '1 day', 'aprendizado');
 
--- 3. Frase NOVO (Nunca estudada, entra na fila)
-INSERT INTO anki_progresso (frase_id, usuario_id, estado)
-VALUES (3, 1, 'novo');
-
-INSERT INTO anki_historico (anki_id, usuario_id, nota, intervalo_anterior, novo_intervalo, data_revisao)
-VALUES 
-(1, 1, 3, 0, 1, CURRENT_TIMESTAMP - INTERVAL '10 days'),
-(1, 1, 3, 1, 2, CURRENT_TIMESTAMP - INTERVAL '7 days'),
-(1, 1, 4, 2, 4, CURRENT_TIMESTAMP - INTERVAL '4 days');
-
--- 1. Exercício Global de Clarity Sprint (Aquecimento)
-INSERT INTO exercicios (tipo_componente, nivel, tags, dados_exercicio)
-VALUES (
-    'ClaritySprint', 
-    1, 
-    ARRAY['gramatica', 'velocidade'], 
-    '{
-        "instrucao": "Remova o ruído da frase",
-        "texto_completo": "The blue water bottle is although very cold today.",
-        "palavras_erradas": ["although"],
-        "tempo_limite": 15
-    }'::jsonb
+CREATE TABLE exercicios_catalogo (
+    id integer NOT NULL,
+    nome varchar(150) NOT NULL,
+    tipo_id integer NOT NULL,
+    descricao text,
+    ativo boolean DEFAULT true,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    proef_base integer DEFAULT 10,
+    proef_bonus integer DEFAULT 0
 );
 
--- 2. Exercício Personalizado de Echo Write (Baseado na Frase 1)
-INSERT INTO exercicios (usuario_id, tipo_componente, tags, dados_exercicio)
-VALUES (
-    1, 
-    'EchoWrite', 
-    ARRAY['escrita', 'audio'], 
-    '{
-        "instrucao": "Ouça e digite a frase capturada",
-        "texto_total": "I don''t wanna go home yet",
-        "parte_oculta": "wanna go home",
-        "texto_lacunado": "I don''t ___________ yet",
-        "audio_url": "https://api.polylang.com/audio/1.mp3"
-    }'::jsonb
+
+
+
+CREATE TABLE frase_detalhes (
+    id integer NOT NULL,
+    frase_id integer NOT NULL,
+    traducao_completa text NOT NULL,
+    explicacao text,
+    fatias_traducoes jsonb,
+    modelo_ia varchar(50),
+    processado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Exercício Global de Nexus Connect (Vocabulário)
-INSERT INTO exercicios (tipo_componente, nivel, tags, dados_exercicio)
-VALUES (
-    'NexusConnect', 
-    2, 
-    ARRAY['vocabulario'], 
-    '{
-        "instrucao": "Arraste para o sinônimo correto",
-        "palavra_central": "Rapid",
-        "opcoes": [
-            {"texto": "Quick", "correta": true},
-            {"texto": "Slow", "correta": false}
-        ]
-    }'::jsonb
+
+
+
+
+
+CREATE TABLE frase_grupos (
+    frase_id integer NOT NULL,
+    grupo_id integer NOT NULL
 );
-/*
--- 1. Inserir Usuário de Teste (Senha: 'senha123' - hash simulado)
-INSERT INTO usuarios (nome, email, senha_hash, token_extensao) 
-VALUES ('Edrio', 'edrio@exemplo.com', '$$2a$13$cohNhJcAsLcQswiMIT1vX.lJ6uXsOBYXCbASYNmvmjd.izAkyMRl.', 'token');
 
--- 2. Configurar Preferências do Usuário
-INSERT INTO preferencias_usuario (usuario_id, idioma_padrao_traducao, auto_traduzir, tema_interface)
-VALUES (1, 'pt-BR', TRUE, 'dark');
 
--- 3. Criar Grupos de Estudo
-INSERT INTO grupos (usuario_id, nome_grupo, descricao, cor_etiqueta)
-VALUES 
-(1, 'Programação Go', 'Frases sobre desenvolvimento em Go', '#00ADD8'),
-(1, 'Expressões em Inglês', 'Gírias e phrasal verbs', '#FFD700');
 
--- 4. Inserir uma Frase capturada pela extensão
-INSERT INTO frases (usuario_id, conteudo, idioma_origem, url_origem, titulo_pagina)
-VALUES (1, 'I don''t wanna go home yet', 'en', 'https://lingua.com/english', 'Study Page');
 
--- 5. Simular o retorno da IA (JSONB com as fatias)
-INSERT INTO frase_detalhes (frase_id, traducao_completa, explicacao, fatias_traducoes, modelo_ia)
-VALUES (1, 
-    'Eu não quero ir para casa ainda', 
-    'A frase usa a contração informal "wanna" (want to).', 
-    '{
-        "I don''t": "Eu não",
-        "wanna": "quero (querer)",
-        "go home": "ir para casa",
-        "yet": "ainda"
-    }'::jsonb, 
-    'gemini-1.5-flash');
+CREATE TABLE frases (
+    id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    conteudo text NOT NULL,
+    idioma_origem varchar(10) DEFAULT 'en'::varchar,
+    url_origem text,
+    titulo_pagina varchar(255),
+    capturado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
 
--- 6. Vincular a frase ao grupo de Inglês
-INSERT INTO frase_grupos (frase_id, grupo_id) VALUES (1, 2);
-*/
+
+ALTER TABLE frases OWNER TO neondb_owner;
+
+
+CREATE TABLE grupos (
+    id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    nome_grupo varchar(100) NOT NULL,
+    descricao text,
+    cor_etiqueta varchar(7),
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE logs_ia (
+    id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    frase_id integer NOT NULL,
+    modelo_utilizado varchar(50),
+    tokens_prompt integer,
+    tokens_completion integer,
+    custo_estimado numeric(10,5),
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE niveis (
+    nivel integer NOT NULL,
+    proeficiencia_min integer NOT NULL
+);
+
+
+
+CREATE TABLE pagamentos (
+    id integer NOT NULL,
+    assinatura_id integer NOT NULL,
+    infinitypay_payment_id varchar(255),
+    valor numeric(10,2) NOT NULL,
+    status varchar(30) NOT NULL,
+    metodo_pagamento varchar(50),
+    payload jsonb,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+CREATE TABLE planos (
+    id integer NOT NULL,
+    nome varchar(100) NOT NULL,
+    preco numeric(10,2) NOT NULL,
+    limite_usuarios integer DEFAULT 1,
+    limite_frases_dia integer,
+    limite_exercicios_dia integer,
+    limite_conversas_semana integer,
+    ativo boolean DEFAULT true,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+CREATE TABLE preferencias_usuario (
+    id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    idioma_padrao_traducao varchar(10) DEFAULT 'pt-BR'::varchar,
+    auto_traduzir boolean DEFAULT false,
+    tema_interface varchar(20) DEFAULT 'dark'::varchar,
+    config jsonb DEFAULT '{}'::jsonb
+);
+
+
+
+
+CREATE TABLE refresh_tokens (
+    id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    token varchar(255) NOT NULL,
+    expira_em timestamp without time zone NOT NULL,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    revogado boolean DEFAULT false
+);
+
+
+
+
+CREATE TABLE tipos_exercicio (
+    id integer NOT NULL,
+    nome varchar(100) NOT NULL,
+    descricao text,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
+CREATE TABLE usuario_estatisticas (
+    usuario_id integer NOT NULL,
+    total_exercicios integer DEFAULT 0,
+    total_acertos integer DEFAULT 0,
+    total_erros integer DEFAULT 0,
+    total_prof integer DEFAULT 0,
+    nivel integer DEFAULT 1,
+    ofensiva_dias integer DEFAULT 0,
+    melhor_ofensiva integer DEFAULT 0,
+    ultima_atividade timestamp without time zone,
+    atualizado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
+CREATE TABLE usuario_estatisticas_exercicio (
+    usuario_id integer NOT NULL,
+    exercicio_id integer NOT NULL,
+    total_respostas integer DEFAULT 0,
+    total_acertos integer DEFAULT 0,
+    melhor_nivel integer DEFAULT 1
+);
+
+
+
+CREATE TABLE usuario_estatisticas_tipo (
+    usuario_id integer NOT NULL,
+    tipo_exercicio_id integer NOT NULL,
+    total_respostas integer DEFAULT 0,
+    total_acertos integer DEFAULT 0,
+    total_erros integer DEFAULT 0,
+    proef_ganho integer DEFAULT 0
+);
+
+
+
+CREATE TABLE usuarios (
+    id integer NOT NULL,
+    nome varchar(100) NOT NULL,
+    email varchar(150) NOT NULL,
+    senha_hash varchar(255) NOT NULL,
+    token_extensao varchar(255),
+    lingua_origem  varchar(20),
+    lingua_de_aprendizado  varchar(20)
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);

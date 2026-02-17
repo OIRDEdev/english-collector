@@ -13,6 +13,7 @@ import (
 	"extension-backend/internal/ai/routing"
 	ankiRepo "extension-backend/internal/anki/repository"
 	ankiSvc "extension-backend/internal/anki/service"
+	"extension-backend/internal/auth"
 	"extension-backend/internal/cache"
 	"extension-backend/internal/database"
 	exRepo "extension-backend/internal/exercises/repository"
@@ -92,12 +93,16 @@ func main() {
 		log.Println("AI translation service enabled")
 	}
 
+	// Initialize auth module
+	authService := auth.NewService(userService)
+	authHandler := auth.NewHandler(authService, userService)
+
 	// Initialize handler
 	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService, aiService)
 
 	// Setup router
 	r := apphttp.NewRouter()
-	apphttp.RegisterRoutes(r, handler, aiMiddleware, sseHub, cacheClient)
+	apphttp.RegisterRoutes(r, handler, authHandler, aiMiddleware, sseHub, cacheClient)
 
 	// Graceful shutdown
 	go func() {

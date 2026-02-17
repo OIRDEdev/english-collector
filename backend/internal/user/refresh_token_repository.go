@@ -15,24 +15,24 @@ func NewRefreshTokenRepository(db *pgxpool.Pool) *RefreshTokenRepository {
 	return &RefreshTokenRepository{db: db}
 }
 
-func (r *RefreshTokenRepository) Create(ctx context.Context, userID int, token string) error {
+func (r *RefreshTokenRepository) Create(ctx context.Context, userID int, token, ip, userAgent string) error {
 	query := `
-		INSERT INTO refresh_tokens (usuario_id, token, expira_em)
-		VALUES ($1, $2, $3)
+		INSERT INTO refresh_tokens (usuario_id, token, expira_em, ip, user_agent)
+		VALUES ($1, $2, $3, $4, $5)
 	`
 	expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 days
-	_, err := r.db.Exec(ctx, query, userID, token, expiresAt)
+	_, err := r.db.Exec(ctx, query, userID, token, expiresAt, ip, userAgent)
 	return err
 }
 
 func (r *RefreshTokenRepository) GetByToken(ctx context.Context, token string) (*RefreshToken, error) {
 	query := `
-		SELECT id, usuario_id, token, expira_em, criado_em, revogado
+		SELECT id, usuario_id, token, expira_em, criado_em, revogado, ip, user_agent
 		FROM refresh_tokens WHERE token = $1 AND expira_em > NOW()
 	`
 	var rt RefreshToken
 	err := r.db.QueryRow(ctx, query, token).Scan(
-		&rt.ID, &rt.UsuarioID, &rt.Token, &rt.ExpiraEm, &rt.CriadoEm, &rt.Revogado,
+		&rt.ID, &rt.UsuarioID, &rt.Token, &rt.ExpiraEm, &rt.CriadoEm, &rt.Revogado, &rt.IP, &rt.UserAgent,
 	)
 	if err != nil {
 		return nil, err

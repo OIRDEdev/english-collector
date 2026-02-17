@@ -3,9 +3,7 @@ import type { LoginRequest, LoginResponse, GoogleAuthRequest, User } from '@/typ
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 
-// Token Storage Keys
-const ACCESS_TOKEN_KEY = 'polyglotflow_access_token';
-const REFRESH_TOKEN_KEY = 'polyglotflow_refresh_token';
+// Token Storage Keys - Only User is stored in localStorage now
 const USER_KEY = 'polyglotflow_user';
 
 class ApiService {
@@ -13,13 +11,14 @@ class ApiService {
   private axiosInstance: AxiosInstance;
   private isRefreshing = false;
   private failedQueue: Array<{
-    resolve: (token: string) => void;
+    resolve: (value?: unknown) => void;
     reject: (error: Error) => void;
   }> = [];
 
   private constructor() {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
+      withCredentials: true, // Important for HttpOnly cookies
       headers: {
         'Content-Type': 'application/json',
       },
@@ -36,17 +35,8 @@ class ApiService {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor - add token
-    this.axiosInstance.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        const token = this.getAccessToken();
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
+    // Request interceptor - No longer need to manually add token
+    // browser handles cookies automatically
 
     // Response interceptor - handle 401 and refresh token
     this.axiosInstance.interceptors.response.use(
@@ -54,15 +44,12 @@ class ApiService {
       async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login')) {
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
             })
-              .then((token) => {
-                if (originalRequest.headers) {
-                  originalRequest.headers.Authorization = `Bearer ${token}`;
-                }
+              .then(() => {
                 return this.axiosInstance(originalRequest);
               })
               .catch((err) => Promise.reject(err));
@@ -72,14 +59,11 @@ class ApiService {
           this.isRefreshing = true;
 
           try {
-            const newToken = await this.refreshAccessToken();
-            this.processQueue(null, newToken);
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            }
+            await this.refreshAccessToken();
+            this.processQueue(null);
             return this.axiosInstance(originalRequest);
           } catch (refreshError) {
-            this.processQueue(refreshError as Error, null);
+            this.processQueue(refreshError as Error);
             this.logout();
             return Promise.reject(refreshError);
           } finally {
@@ -92,49 +76,22 @@ class ApiService {
     );
   }
 
-  private processQueue(error: Error | null, token: string | null): void {
+  private processQueue(error: Error | null): void {
     this.failedQueue.forEach((promise) => {
       if (error) {
         promise.reject(error);
-      } else if (token) {
-        promise.resolve(token);
+      } else {
+        promise.resolve();
       }
     });
     this.failedQueue = [];
   }
 
-  private async refreshAccessToken(): Promise<string> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    const response = await axios.post<{ access_token: string }>(
-      `${API_BASE_URL}/auth/refresh`,
-      { refresh_token: refreshToken }
-    );
-
-    const newAccessToken = response.data.access_token;
-    this.setAccessToken(newAccessToken);
-    return newAccessToken;
+  private async refreshAccessToken(): Promise<void> {
+    await this.axiosInstance.post('/auth/refresh');
   }
 
-  // Token Management
-  public getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
-  }
-
-  public setAccessToken(token: string): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  }
-
-  public getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-  }
-
-  public setRefreshToken(token: string): void {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
-  }
+  // Token Management - Removed as cookies are handled by browser
 
   public getUser(): User | null {
     const userStr = localStorage.getItem(USER_KEY);
@@ -145,49 +102,50 @@ class ApiService {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
 
-  public isAuthenticated(): boolean {
-    return !!this.getAccessToken();
+  // Check auth by calling /me endpoint
+  public async checkAuth(): Promise<User | null> {
+    try {
+      const response = await this.axiosInstance.get<User>('/auth/me');
+      this.setUser(response.data);
+      return response.data;
+    } catch (error) {
+        return null; // Not authenticated
+    }
   }
 
-  public logout(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    window.location.href = '/login';
+  public isAuthenticated(): boolean {
+    // We can't know for sure without checking server, but for UI sync we check if valid user object exists
+    // However, best practice is to rely on checkAuth on mount.
+    return !!this.getUser();
+  }
+
+  public async logout(): Promise<void> {
+    try {
+        await this.axiosInstance.post('/auth/logout');
+    } catch (e) {
+        console.error("Logout failed", e);
+    } finally {
+        localStorage.removeItem(USER_KEY);
+        // Force reload or redirect
+        window.location.href = '/login';
+    }
   }
 
   // Auth Endpoints
-  public async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await this.axiosInstance.post<LoginResponse>('/auth/login', credentials);
-    const { user, access_token, refresh_token } = response.data;
-    
-    this.setAccessToken(access_token);
-    this.setRefreshToken(refresh_token);
-    this.setUser(user);
-    
-    return response.data;
+  public async login(credentials: LoginRequest): Promise<void> {
+    await this.axiosInstance.post('/auth/login', credentials);
+    // After login, fetch user info
+    await this.checkAuth();
   }
 
-  public async loginWithGoogle(credential: string): Promise<LoginResponse> {
-    const response = await this.axiosInstance.post<LoginResponse>('/auth/google', { credential } as GoogleAuthRequest);
-    const { user, access_token, refresh_token } = response.data;
-    
-    this.setAccessToken(access_token);
-    this.setRefreshToken(refresh_token);
-    this.setUser(user);
-    
-    return response.data;
+  public async loginWithGoogle(credential: string): Promise<void> {
+    await this.axiosInstance.post('/auth/google', { credential });
+    await this.checkAuth();
   }
 
-  public async register(data: { nome: string; email: string; senha: string }): Promise<LoginResponse> {
-    const response = await this.axiosInstance.post<LoginResponse>('/auth/register', data);
-    const { user, access_token, refresh_token } = response.data;
-    
-    this.setAccessToken(access_token);
-    this.setRefreshToken(refresh_token);
-    this.setUser(user);
-    
-    return response.data;
+  public async register(data: { nome: string; email: string; senha: string }): Promise<void> {
+    await this.axiosInstance.post('/auth/register', data);
+    await this.checkAuth();
   }
 
   // API Instance for other services

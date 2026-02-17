@@ -85,20 +85,25 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, intID)
 }
 
-func (s *Service) Register(ctx context.Context, input RegisterInput) (*User, error) {
+func (s *Service) Register(ctx context.Context, input RegisterInput, ip, userAgent string) (*AuthTokens, error) {
 	existing, _ := s.repo.GetByEmail(ctx, input.Email)
 	if existing != nil {
 		return nil, fmt.Errorf("email already registered")
 	}
 
-	return s.Create(ctx, CreateInput{
+	u, err := s.Create(ctx, CreateInput{
 		Nome:  input.Nome,
 		Email: input.Email,
 		Senha: input.Senha,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.generateTokens(ctx, u, ip, userAgent)
 }
 
-func (s *Service) Login(ctx context.Context, input LoginInput) (*AuthTokens, error) {
+func (s *Service) Login(ctx context.Context, input LoginInput, ip, userAgent string) (*AuthTokens, error) {
 	u, err := s.repo.GetByEmail(ctx, input.Email)
 	if err != nil {
 		return nil, fmt.Errorf("invalid credentials")
@@ -108,13 +113,20 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*AuthTokens, err
 		return nil, fmt.Errorf("invalid credentials")
 	}
 
-	return s.generateTokens(ctx, u)
+	return s.generateTokens(ctx, u, ip, userAgent)
 }
 
-func (s *Service) RefreshTokens(ctx context.Context, refreshToken string) (*AuthTokens, error) {
+func (s *Service) RefreshTokens(ctx context.Context, refreshToken, ip, userAgent string) (*AuthTokens, error) {
 	rt, err := s.tokenRepo.GetByToken(ctx, refreshToken)
 	if err != nil || rt.Revogado {
 		return nil, fmt.Errorf("invalid refresh token")
+	}
+
+	// Fingerprint validation (simple implementation)
+	// In a real scenario, we might want to allow some flexibility or notify the user
+	if rt.IP != ip || rt.UserAgent != userAgent {
+		s.tokenRepo.Revoke(ctx, rt.ID) // Revoke possibly stolen token
+		return nil, fmt.Errorf("suspicious activity detected")
 	}
 
 	u, err := s.repo.GetByID(ctx, rt.UsuarioID)
@@ -123,17 +135,17 @@ func (s *Service) RefreshTokens(ctx context.Context, refreshToken string) (*Auth
 	}
 
 	s.tokenRepo.Revoke(ctx, rt.ID)
-	return s.generateTokens(ctx, u)
+	return s.generateTokens(ctx, u, ip, userAgent)
 }
 
-func (s *Service) generateTokens(ctx context.Context, u *User) (*AuthTokens, error) {
+func (s *Service) generateTokens(ctx context.Context, u *User, ip, userAgent string) (*AuthTokens, error) {
 	accessToken, err := s.tokenService.GenerateAccessToken(u)
 	if err != nil {
 		return nil, err
 	}
 
 	refreshToken := shared.GenerateToken(64)
-	if err := s.tokenRepo.Create(ctx, u.ID, refreshToken); err != nil {
+	if err := s.tokenRepo.Create(ctx, u.ID, refreshToken, ip, userAgent); err != nil {
 		return nil, err
 	}
 
@@ -142,4 +154,16 @@ func (s *Service) generateTokens(ctx context.Context, u *User) (*AuthTokens, err
 		RefreshToken: refreshToken,
 		ExpiresIn:    3600,
 	}, nil
+}
+
+func (s *Service) LoginWithoutPassword(ctx context.Context, email, ip, userAgent string) (*AuthTokens, error) {
+	u, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+	return s.generateTokens(ctx, u, ip, userAgent)
+}
+
+func (s *Service) GetByEmail(ctx context.Context, email string) (*User, error) {
+	return s.repo.GetByEmail(ctx, email)
 }
