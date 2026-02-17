@@ -26,6 +26,8 @@ type RefreshToken struct {
 	ExpiraEm  time.Time `json:"expira_em"`
 	CriadoEm  time.Time `json:"criado_em"`
 	Revogado  bool      `json:"revogado"`
+	IP        string    `json:"ip"`
+	UserAgent string    `json:"user_agent"`
 }
 
 type CreateInput struct {

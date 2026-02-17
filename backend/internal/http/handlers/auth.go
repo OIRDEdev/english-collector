@@ -15,7 +15,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := h.userService.Login(ctx, input)
+	ip := r.RemoteAddr
+	userAgent := r.UserAgent()
+
+	tokens, err := h.userService.Login(ctx, input, ip, userAgent)
 	if err != nil {
 		SendError(w, http.StatusUnauthorized, "invalid credentials")
 		return
@@ -33,13 +36,16 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.userService.Register(ctx, input)
+	ip := r.RemoteAddr
+	userAgent := r.UserAgent()
+
+	tokens, err := h.userService.Register(ctx, input, ip, userAgent)
 	if err != nil {
 		SendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	SendSuccess(w, http.StatusCreated, "User registered", u)
+	SendSuccess(w, http.StatusCreated, "User registered", tokens)
 }
 
 func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +59,10 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := h.userService.RefreshTokens(ctx, input.RefreshToken)
+	ip := r.RemoteAddr
+	userAgent := r.UserAgent()
+
+	tokens, err := h.userService.RefreshTokens(ctx, input.RefreshToken, ip, userAgent)
 	if err != nil {
 		SendError(w, http.StatusUnauthorized, "invalid refresh token")
 		return

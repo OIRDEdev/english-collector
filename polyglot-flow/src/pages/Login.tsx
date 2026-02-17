@@ -15,7 +15,7 @@ const loginSchema = z.object({
   senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres").max(100),
 });
 
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"; // User needs to configure this
+const GOOGLE_CLIENT_ID = "971837374738-3k3m704hipkqckl15q7qn38n97oqulgs.apps.googleusercontent.com"; // User needs to configure this
 
 const Login = () => {
   const navigate = useNavigate();
@@ -47,7 +47,7 @@ const Login = () => {
     try {
       await login(email, senha);
       toast.success("Login realizado com sucesso!");
-      navigate("/dashboard");
+      navigate("/onboarding");
     } catch (error: any) {
       const message = error.response?.data?.error || "Erro ao fazer login. Verifique suas credenciais.";
       toast.error(message);
@@ -66,7 +66,7 @@ const Login = () => {
           try {
             await loginWithGoogle(response.credential);
             toast.success("Login com Google realizado!");
-            navigate("/dashboard");
+            navigate("/onboarding");
           } catch (error: any) {
             const message = error.response?.data?.error || "Erro ao fazer login com Google.";
             toast.error(message);
