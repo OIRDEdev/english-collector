@@ -2,15 +2,17 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
+	"extension-backend/internal/http/middleware"
 	"extension-backend/internal/user"
 )
 
 type Handler struct {
 	service     *Service
-	userService user.ServiceInterface // Needed for Me endpoint
+	userService user.ServiceInterface
 }
 
 func NewHandler(service *Service, userService user.ServiceInterface) *Handler {
@@ -31,20 +33,20 @@ func (h *Handler) setCookies(w http.ResponseWriter, tokens *user.AuthTokens) {
 		Name:     AccessTokenCookie,
 		Value:    tokens.AccessToken,
 		Path:     "/",
-		HttpOnly: true, // Secure, not accessible by JS
+		HttpOnly: true,
 		Secure:   false, // Set to true in production (HTTPS)
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(1 * time.Hour), // Match access token expiry
+		Expires:  time.Now().Add(1 * time.Hour),
 	})
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     RefreshTokenCookie,
 		Value:    tokens.RefreshToken,
-		Path:     "/", // Could be restricted to /api/v1/auth/refresh
+		Path:     "/",
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(7 * 24 * time.Hour), // Match refresh token expiry
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
 }
 
@@ -65,6 +67,13 @@ func (h *Handler) clearCookies(w http.ResponseWriter) {
 	})
 }
 
+// UserResponse is the safe user data returned in responses
+type UserResponse struct {
+	ID    int    `json:"id"`
+	Nome  string `json:"nome"`
+	Email string `json:"email"`
+}
+
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var input user.LoginInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -79,12 +88,24 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.setCookies(w, tokens)
-	
-	// Return user info but NOT tokens in body
-	// We need to fetch user info again or return it from Login (Login currently returns tokens only)
-	// For now, let's just return success message. Frontend can fetch /me
+
+	// Fetch user data to return in response
+	u, err := h.userService.GetByEmail(r.Context(), input.Email)
+	if err != nil {
+		// Cookies are set, login succeeded — return minimal response
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+	json.NewEncoder(w).Encode(UserResponse{
+		ID:    u.ID,
+		Nome:  u.Nome,
+		Email: u.Email,
+	})
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -101,8 +122,23 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.setCookies(w, tokens)
+
+	// Fetch user data to return
+	u, err := h.userService.GetByEmail(r.Context(), input.Email)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Registration successful"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Registration successful"})
+	json.NewEncoder(w).Encode(UserResponse{
+		ID:    u.ID,
+		Nome:  u.Nome,
+		Email: u.Email,
+	})
 }
 
 func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
@@ -121,14 +157,14 @@ func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.setCookies(w, tokens)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Google login successful"})
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	// Ideally we should revoke the refresh token here too
-	// For now just clear cookies
 	h.clearCookies(w)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Logged out"})
 }
@@ -142,37 +178,35 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err := h.service.RefreshToken(r.Context(), cookie.Value, r.RemoteAddr, r.UserAgent())
 	if err != nil {
-		h.clearCookies(w) // Clear invalid cookies
+		h.clearCookies(w)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	h.setCookies(w, tokens)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Token refreshed"})
 }
 
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
-	// This endpoint is protected by AuthMiddleware which should populate context with UserID via claims
-    // But we haven't implemented AuthMiddleware changes yet to strictly use cookies.
-    // However, the existing middleware likely looks for Authorization header.
-    // We need to assume the middleware will extract user ID from token (which might come from cookie now).
-    
-    // For now, let's assume we can get user info if middleware passed.
-    // Wait, we need to return the User object.
-    // Context should have user ID.
-    
-    // NOTE: The current `handlers.GetUser` does `chi.URLParam`.
-    // We need a way to get "current user".
-    // Typically middleware puts it in context.
-    
-    // Let's defer this implementation or mock it.
-    // Assuming middleware puts "userID" in context.
-    
-    // Since I don't see the middleware implementation right now (I saw view_file router.go which uses middleware.AIMiddleware but I didn't verify AuthMiddleware),
-    // I will assume standard practice or I need to check `middleware`.
-    
-    w.WriteHeader(http.StatusOK)
-    // Placeholder response
-    json.NewEncoder(w).Encode(map[string]interface{}{"id": 1, "email": "placeholder@example.com"})
+	claims := middleware.GetUserFromContext(r.Context())
+	if claims == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	u, err := h.userService.GetByID(r.Context(), fmt.Sprintf("%d", claims.UserID))
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(UserResponse{
+		ID:    u.ID,
+		Nome:  u.Nome,
+		Email: u.Email,
+	})
 }

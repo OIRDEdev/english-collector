@@ -9,25 +9,28 @@ import (
 	"time"
 
 	"extension-backend/internal/sse/repository"
+	"extension-backend/internal/user"
 )
 
 // Hub gerencia conexões SSE e distribui eventos
 type Hub struct {
-	repo       *repository.Repository
-	service    *Service
-	pingTicker *time.Ticker
-	stopPing   chan struct{}
+	repo         *repository.Repository
+	service      *Service
+	tokenService *user.TokenService
+	pingTicker   *time.Ticker
+	stopPing     chan struct{}
 }
 
 // NewHub cria um novo Hub com repository e service
-func NewHub() *Hub {
+func NewHub(tokenService *user.TokenService) *Hub {
 	repo := repository.New()
 	service := NewService(repo)
 
 	return &Hub{
-		repo:     repo,
-		service:  service,
-		stopPing: make(chan struct{}),
+		repo:         repo,
+		service:      service,
+		tokenService: tokenService,
+		stopPing:     make(chan struct{}),
 	}
 }
 
@@ -88,30 +91,44 @@ func (h *Hub) Stop() {
 	close(h.stopPing)
 }
 
+// extractUserID extracts user ID from cookie JWT or query param fallback
+func (h *Hub) extractUserID(r *http.Request) (int, error) {
+	// 1. Try cookie auth (browser/extension)
+	if cookie, err := r.Cookie("access_token"); err == nil && cookie.Value != "" {
+		if h.tokenService != nil {
+			claims, err := h.tokenService.ValidateAccessToken(cookie.Value)
+			if err == nil {
+				return claims.UserID, nil
+			}
+			log.Printf("[SSE] Cookie JWT invalid: %v", err)
+		}
+	}
+
+	// 2. Fallback to ?user_id=N (API/dev usage)
+	userIDStr := r.URL.Query().Get("user_id")
+	if userIDStr != "" {
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+			return 0, fmt.Errorf("invalid user_id: %w", err)
+		}
+		return userID, nil
+	}
+
+	return 0, fmt.Errorf("authentication required: provide cookie or ?user_id=N")
+}
+
 // Handler retorna o http.HandlerFunc para conexões SSE
-// Exige ?user_id=N no query string
 func (h *Hub) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
 		// SSE headers
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 
-		// Extrair user_id do query param
-		userIDStr := r.URL.Query().Get("user_id")
-		if userIDStr == "" {
-			http.Error(w, "user_id is required", http.StatusBadRequest)
-			return
-		}
-
-		userID, err := strconv.Atoi(userIDStr)
+		// Extract UserID from cookie or query param
+		userID, err := h.extractUserID(r)
 		if err != nil {
-			http.Error(w, "invalid user_id", http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 

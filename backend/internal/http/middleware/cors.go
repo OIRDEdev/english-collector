@@ -7,11 +7,9 @@ func CORS(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 		if origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-		} else {
-            // Fallback for non-browser or tools
-            w.Header().Set("Access-Control-Allow-Origin", "*")
-        }
-		
+		}
+		// No wildcard fallback — incompatible with credentials: include
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
