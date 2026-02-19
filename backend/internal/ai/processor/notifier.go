@@ -19,15 +19,16 @@ func NewNotifier(broadcaster routing.Broadcaster) *Notifier {
 	return &Notifier{broadcaster: broadcaster}
 }
 
-// NotifySuccess envia notificação de tradução completa
+// NotifySuccess envia notificação de tradução completa para o usuário correto
 func (n *Notifier) NotifySuccess(result Result) {
 	if n == nil || n.broadcaster == nil {
 		return
 	}
 
-	log.Printf("[AI] Broadcasting translation for phrase %d", result.PhraseID)
+	log.Printf("[AI] Sending translation for phrase %d to user %d", result.PhraseID, result.UserID)
 
 	n.broadcaster.SendTranslation(routing.TranslationEvent{
+		UserID:      result.UserID,
 		PhraseID:    result.PhraseID,
 		Translation: result.TraducaoCompleta,
 		Explanation: result.Explicacao,
@@ -36,15 +37,16 @@ func (n *Notifier) NotifySuccess(result Result) {
 	})
 }
 
-// NotifyError envia notificação de erro
-func (n *Notifier) NotifyError(phraseID int, err error) {
+// NotifyError envia notificação de erro para o usuário correto
+func (n *Notifier) NotifyError(userID, phraseID int, err error) {
 	if n == nil || n.broadcaster == nil {
 		return
 	}
 
-	log.Printf("[AI] Broadcasting error for phrase %d: %v", phraseID, err)
+	log.Printf("[AI] Sending error for phrase %d to user %d: %v", phraseID, userID, err)
 
 	n.broadcaster.SendError(routing.ErrorEvent{
+		UserID:   userID,
 		PhraseID: phraseID,
 		Error:    err.Error(),
 	})

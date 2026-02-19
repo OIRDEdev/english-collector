@@ -2,6 +2,9 @@
  * Popup Handler - Manages the extension popup UI
  * Displays captured sentences with streaming source, timestamps, and sync status
  */
+import { authGuard } from "../Auth/AuthGuard.js";
+import { authService } from "../Auth/AuthService.js";
+
 // DOM Elements
 const elements = {
     // Nav Buttons
@@ -23,7 +26,6 @@ const elements = {
     
     // Sync specific
     syncBtn: document.getElementById('sync-btn'),
-    // syncCount: document.getElementById('sync-count-info'), 
     
     // Config specific
     clearAllBtn: document.getElementById('clear-all'),
@@ -33,7 +35,15 @@ const elements = {
     toastMessage: document.getElementById('toast-message'),
 
     // Start Capture Button (in empty state)
-    startCaptureBtn: document.getElementById('btn-start-capture')
+    startCaptureBtn: document.getElementById('btn-start-capture'),
+
+    // Auth elements
+    authScreen: document.getElementById('auth-screen'),
+    loginSubmitBtn: document.getElementById('btn-login-submit'),
+    loginPageBtn: document.getElementById('btn-login-page'),
+    authEmail: document.getElementById('auth-email'),
+    authPassword: document.getElementById('auth-password'),
+    authError: document.getElementById('auth-error')
 };
 
 // State
@@ -228,9 +238,79 @@ function triggerCapture() {
     });
 }
 
+/**
+ * Setup Auth Event Listeners
+ */
+function setupAuthListeners() {
+    // Login form submit
+    if (elements.loginSubmitBtn) {
+        elements.loginSubmitBtn.addEventListener('click', async () => {
+            const email = elements.authEmail?.value?.trim();
+            const password = elements.authPassword?.value;
+
+            if (!email || !password) {
+                showAuthError("Preencha email e senha");
+                return;
+            }
+
+            elements.loginSubmitBtn.disabled = true;
+            elements.loginSubmitBtn.textContent = "Entrando...";
+            hideAuthError();
+
+            try {
+                await authGuard.loginDirect(email, password);
+                showToast("Login realizado com sucesso!");
+                loadSentences();
+            } catch (err) {
+                showAuthError(err.message || "Falha no login");
+            } finally {
+                elements.loginSubmitBtn.disabled = false;
+                elements.loginSubmitBtn.textContent = "Entrar";
+            }
+        });
+    }
+
+    // Open login page button
+    if (elements.loginPageBtn) {
+        elements.loginPageBtn.addEventListener('click', () => {
+            authGuard.openLoginPage();
+        });
+    }
+
+    // Enter key on password field
+    if (elements.authPassword) {
+        elements.authPassword.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                elements.loginSubmitBtn?.click();
+            }
+        });
+    }
+}
+
+function showAuthError(msg) {
+    if (elements.authError) {
+        elements.authError.textContent = msg;
+        elements.authError.style.display = 'block';
+    }
+}
+
+function hideAuthError() {
+    if (elements.authError) {
+        elements.authError.style.display = 'none';
+    }
+}
+
 // Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    loadSentences();
+document.addEventListener('DOMContentLoaded', async () => {
+    // Setup auth listeners first
+    setupAuthListeners();
+
+    // Check authentication
+    const isAuthenticated = await authGuard.init();
+
+    if (isAuthenticated) {
+        loadSentences();
+    }
 
     // Tabs
     if(elements.navList) elements.navList.addEventListener('click', () => switchTab('list'));

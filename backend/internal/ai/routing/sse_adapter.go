@@ -4,22 +4,23 @@ import (
 	"extension-backend/internal/sse"
 )
 
-// SSEAdapter adapta sse.Hub para routing.Broadcaster
+// SSEAdapter adapta sse.Service para routing.Broadcaster
 type SSEAdapter struct {
-	hub *sse.Hub
+	service *sse.Service
 }
 
-// NewSSEAdapter cria adapter para o hub SSE
-func NewSSEAdapter(hub *sse.Hub) *SSEAdapter {
-	if hub == nil {
+// NewSSEAdapter cria adapter para o SSE Service
+func NewSSEAdapter(service *sse.Service) *SSEAdapter {
+	if service == nil {
 		return nil
 	}
-	return &SSEAdapter{hub: hub}
+	return &SSEAdapter{service: service}
 }
 
-// SendTranslation envia evento de tradução completa
+// SendTranslation envia evento de tradução para o usuário específico
 func (a *SSEAdapter) SendTranslation(event TranslationEvent) {
-	a.hub.BroadcastTranslation(
+	a.service.SendTranslation(
+		event.UserID,
 		event.PhraseID,
 		event.Translation,
 		event.Explanation,
@@ -28,13 +29,7 @@ func (a *SSEAdapter) SendTranslation(event TranslationEvent) {
 	)
 }
 
-// SendError envia evento de erro
+// SendError envia evento de erro para o usuário específico
 func (a *SSEAdapter) SendError(event ErrorEvent) {
-	a.hub.Broadcast(sse.Event{
-		Type: "translation_error",
-		Payload: map[string]interface{}{
-			"phrase_id": event.PhraseID,
-			"error":     event.Error,
-		},
-	})
+	a.service.SendError(event.UserID, event.PhraseID, event.Error)
 }

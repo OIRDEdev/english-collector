@@ -49,6 +49,7 @@ func (m *AIMiddleware) ProcessTranslation(next http.Handler) http.Handler {
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 		var requestData struct {
+			UsuarioID     int    `json:"usuario_id"`
 			IdiomaOrigem  string `json:"idioma_origem"`
 			IdiomaDestino string `json:"idioma_destino"`
 			Conteudo      string `json:"conteudo"`
@@ -78,8 +79,13 @@ func (m *AIMiddleware) ProcessTranslation(next http.Handler) http.Handler {
 				Data *phrase.Phrase `json:"data"`
 			}
 			if err := json.Unmarshal(recorder.body.Bytes(), &response); err == nil && response.Data != nil && response.Data.ID != 0 {
+				userID := requestData.UsuarioID
+				if userID == 0 && response.Data != nil {
+					userID = response.Data.UsuarioID
+				}
 				m.processor.ProcessAsync(processor.Request{
 					PhraseID:      response.Data.ID,
+					UserID:        userID,
 					Conteudo:      requestData.Conteudo,
 					IdiomaOrigem:  requestData.IdiomaOrigem,
 					IdiomaDestino: requestData.IdiomaDestino,

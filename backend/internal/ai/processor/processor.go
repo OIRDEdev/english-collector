@@ -31,16 +31,17 @@ func (p *Processor) execute(req Request) {
 
 	// Step 1: Translate
 	result := p.translator.Translate(ctx, req)
+	result.UserID = req.UserID
 
 	// Step 2: Handle error or persist
 	if result.Error != nil {
-		p.notifier.NotifyError(req.PhraseID, result.Error)
+		p.notifier.NotifyError(req.UserID, req.PhraseID, result.Error)
 		return
 	}
 
 	// Step 3: Persist
 	if err := p.persister.Save(ctx, result); err != nil {
-		p.notifier.NotifyError(req.PhraseID, err)
+		p.notifier.NotifyError(req.UserID, req.PhraseID, err)
 		return
 	}
 
