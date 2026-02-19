@@ -24,6 +24,8 @@ import (
 	"extension-backend/internal/http/middleware"
 	phraseRepo "extension-backend/internal/phrase/repository"
 	phraseSvc "extension-backend/internal/phrase/service"
+	"extension-backend/internal/settings"
+	settingsRepo "extension-backend/internal/settings/repository"
 	"extension-backend/internal/sse"
 	"extension-backend/internal/user"
 
@@ -97,12 +99,17 @@ func main() {
 	authService := auth.NewService(userService)
 	authHandler := auth.NewHandler(authService, userService)
 
+	// Initialize settings module
+	settingsRepository := settingsRepo.New(db)
+	settingsService := settings.NewService(settingsRepository)
+	settingsHandler := settings.NewHandler(settingsService)
+
 	// Initialize handler
 	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService, aiService)
 
 	// Setup router
 	r := apphttp.NewRouter()
-	apphttp.RegisterRoutes(r, handler, authHandler, aiMiddleware, sseHub, cacheClient)
+	apphttp.RegisterRoutes(r, handler, authHandler, settingsHandler, aiMiddleware, sseHub, cacheClient)
 
 	// Graceful shutdown
 	go func() {
