@@ -87,7 +87,7 @@ func main() {
 		// Create AI module components
 		translator := processor.NewTranslator(aiService)
 		persister := processor.NewPersister(repository.NewPhraseAdapter(phraseService))
-		notifier := processor.NewNotifier(routing.NewSSEAdapter(sseHub))
+		notifier := processor.NewNotifier(routing.NewSSEAdapter(sseHub.GetService()))
 
 		// Assemble processor
 		aiProcessor := processor.New(translator, persister, notifier)

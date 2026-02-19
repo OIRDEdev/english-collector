@@ -2,88 +2,16 @@ import { config } from "../Shared/config.js";
 
 /**
  * API Client - Manages backend calls
- * Responsible for authentication and phrase submission
+ * Uses HttpOnly cookies for authentication (credentials: 'include')
  */
 class ApiClient {
     constructor(options = {}) {
         this.config = options.config || config;
-        this.authHeader = null;
-        this.isAuthenticated = false;
         this.lastPhrase = "";
     }
 
     /**
-     * Sets auth header
-     * @param {string} token - Access token
-     */
-    setAuthToken(token) {
-        if (token) {
-            this.authHeader = `Bearer ${token}`;
-            this.isAuthenticated = true;
-        } else {
-            this.authHeader = null;
-            this.isAuthenticated = false;
-        }
-    }
-
-    /**
-     * Loads saved token from storage
-     */
-    async loadSavedAuth() {
-        try {
-            const data = await chrome.storage.local.get("auth_token");
-            if (data.auth_token) {
-                this.setAuthToken(data.auth_token);
-                return true;
-            }
-        } catch (e) {
-            console.warn("[API] Error loading auth:", e);
-        }
-        return false;
-    }
-
-    /**
-     * Saves token to storage
-     * @param {string} token - Token to save
-     */
-    async saveAuthToken(token) {
-        await chrome.storage.local.set({ auth_token: token });
-        this.setAuthToken(token);
-    }
-
-    /**
-     * Removes authentication
-     */
-    async logout() {
-        await chrome.storage.local.remove("auth_token");
-        this.authHeader = null;
-        this.isAuthenticated = false;
-        console.log("[API] Logged out");
-    }
-
-    /**
-     * Log in with tokens
-     * @param {string} idToken - ID Token
-     * @param {string} accessToken - Access Token
-     * @returns {Promise<boolean>}
-     */
-    async login(idToken, accessToken) {
-        try {
-            await chrome.storage.local.set({ 
-                id_token: idToken,
-                auth_token: accessToken 
-            });
-            this.setAuthToken(accessToken);
-            console.log("[API] Login successful");
-            return true;
-        } catch (e) {
-            console.error("[API] Login failed:", e);
-            return false;
-        }
-    }
-
-    /**
-     * Generic HTTP call method
+     * Generic HTTP call method — uses cookies via credentials: 'include'
      * @param {Object} options - Request options
      * @returns {Promise<Object>}
      */
@@ -94,18 +22,14 @@ class ApiClient {
             "Content-Type": "application/json; charset=UTF-8"
         };
 
-        if (this.authHeader) {
-            headers["Authorization"] = this.authHeader;
-        }
-
         try {
-            console.log("[API] Body:", body);
             const response = await fetch(`${this.config.apiUrl}/${endpoint}`, {
                 method,
                 headers,
+                credentials: "include",
                 body: body ? JSON.stringify(body) : null
             });
-            console.log("[API] Response:", response);
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }

@@ -8,6 +8,7 @@ type Event struct {
 
 // TranslationEvent evento de tradução completa
 type TranslationEvent struct {
+	UserID      int               `json:"user_id"`
 	PhraseID    int               `json:"phrase_id"`
 	Translation string            `json:"translation"`
 	Explanation string            `json:"explanation"`
@@ -17,11 +18,12 @@ type TranslationEvent struct {
 
 // ErrorEvent evento de erro
 type ErrorEvent struct {
+	UserID   int    `json:"user_id"`
 	PhraseID int    `json:"phrase_id"`
 	Error    string `json:"error"`
 }
 
-// Broadcaster interface para broadcast de eventos
+// Broadcaster interface para envio de eventos por usuário
 type Broadcaster interface {
 	SendTranslation(event TranslationEvent)
 	SendError(event ErrorEvent)

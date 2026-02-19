@@ -1,47 +1,48 @@
 # Backend Documentation
 
-Esse diretório contém a documentação do backend do Projeto Extensão. O backend é escrito em Go e serve como a API para a Extensão do Chrome.
+Esse diretório contém a documentação completa do backend do Projeto Extensão. O backend é desenvolvido em Go (Golang) e serve como API principal para a Extensão do Chrome e para o Frontend Web (PolyglotFlow).
 
-## Architecture Overview
+##  Módulos do Sistema
 
-A aplicação segue uma arquitetura de **Monólito Modular** com uma separação clara de preocupações usando princípios de **Arquitetura Limpa** dentro de cada módulo.
+A documentação está dividida por módulos funcionais para facilitar o entendimento de cada parte do sistema:
 
-### Estrutura de Diretórios
+### Core & Infraestrutura
+- **[Auth Module](docs/backend/modules/auth.md)**: Autenticação via JWT, Cookies (Extensions) e Google OAuth. Gerencia sessões e segurança.
+- **[HTTP Layer](docs/backend/modules/http.md)**: Configuração do roteador Chi, Middlewares (CORS, Auth, Logger) e tratamento de erros.
+- **[Settings & Onboarding](docs/backend/modules/settings.md)**: Gerenciamento de preferências do usuário, temas, configurações de idioma e fluxo de onboarding.
+- **[Cache System](docs/backend/modules/cache.md)**: Implementação de cache Redis para otimização de performance e redução de carga no banco.
 
-- **`cmd/api`**: The entry point of the application. `main.go` handles configuration, database connection, dependency injection, and server startup.
-- **`internal`**: Contém a lógica da aplicação, dividida por módulos de domínio.
-    - **`ai`**: Cliente para o serviço Google Gemini AI.
-    - **`database`**: Conexão e configuração do banco de dados.
-    - **`group`**: Lógica de gerenciamento de grupos.
-    - **`http`**: Configuração do servidor HTTP, roteamento, middleware e manipuladores.
-    - **`phrase`**: Gerenciamento de frases (CRUD, Paginação, Detalhes de Tradução).
-    - **`sse`**: Implementação de Server-Sent Events para atualizações em tempo real.
-    - **`user`**: Autenticação e gerenciamento de usuários.
-- **`migrations`**: Arquivos de migração do banco de dados.
+### Funcionalidades Principais
+- **[AI Module](docs/backend/modules/ai.md)**: Integração com Google Gemini para tradução contextual, explicação gramatical e análise de frases.
+- **[Phrase Module](docs/backend/modules/phrase.md)**: CRUD de frases capturadas, sistema de revisão e gerenciamento de conteúdo.
+- **[SSE Module (Real-time)](docs/backend/modules/sse.md)**: Server-Sent Events para entrega de traduções em tempo real com **binding por usuário**.
+- **[Anki Integration](docs/backend/modules/anki.md)**: Sincronização e geração de decks para o Anki.
+- **[Exercises Engine](docs/backend/modules/exercises.md)**: Motor de geração e correção de exercícios baseados nas frases capturadas.
 
-### Key Patterns
+---
 
-- **Dependency Injection**: As dependências (repositórios, serviços) são criadas explicitamente em `main.go` e injetadas nos consumidores (controladores/manipuladores).
-- **Middleware Chain**: As requisições HTTP passam por uma cadeia de middlewares (Logging, CORS, Auth, AI Processing) antes de atingir os manipuladores.
-- **Async Processing**: Tarefas pesadas (como tradução de IA) são tratadas de forma assíncrona usando Goroutines e interceptação de Middleware.
-- **Real-time Updates**: SSE (Server-Sent Events) é usado para enviar atualizações (como conclusão de tradução) para o cliente.
+## 🛠 Arquitetura e Análise Técnica
 
-## Getting Started
+Além dos módulos, possuímos documentos de análise técnica e arquitetural:
 
-1.  **Environment Setup**: Copie `.env.example` para `.env` e preencha os valores necessários (credenciais do banco de dados, chaves de API).
-2.  **Run with Make**: Use `make run` para iniciar o servidor.
-3.  **Run with Go**: `go run cmd/api/main.go`.
+- **[Compatibilidade e Falhas do Banco](docs/backend/compatibilidade_e_falhas_do_banco.md)**: Análise detalhada do esquema do banco de dados, problemas de integridade referencial e sugestões de correção.
+- **[Análise de Bugs Potenciais](docs/backend/potential_bugs.md)**: Levantamento de riscos, race conditions e pontos de falha no código atual.
+- **[Melhorias Futuras](docs/backend/future_improvements.md)**: Roadmap técnico, refatorações planejadas e novas features sugeridas.
 
-## Modules
+---
 
-Documentação detalhada para módulos-chave:
+## 🚀 Como Rodar
 
-- [AI Module](./modules/ai.md) - Lógica de tradução com Gemini.
-- [Phrase Module](./modules/phrase.md) - Lógica de domínio para frases.
-- [SSE Module](./modules/sse.md) - Comunicação em tempo real.
-- [HTTP Layer](./modules/http.md) - Roteamento e Middleware.
-
-## Análise e Melhorias Futuras
-
-- [Potential Bugs & Risks](./potential_bugs.md) - Análise de riscos da implementação atual.
-- [Future Improvements](./future_improvements.md) - Roadmap para escalabilidade e funcionalidades.
+1.  **Configuração**: Copie `.env.example` para `.env` e configure as credenciais.
+2.  **Dependências**:
+    - Go 1.21+
+    - PostgreSQL
+    - Redis (Opcional, mas recomendado)
+3.  **Execução**:
+    ```bash
+    # Rodar via Make
+    make run
+    
+    # Ou direto pelo Go
+    go run cmd/api/main.go
+    ```

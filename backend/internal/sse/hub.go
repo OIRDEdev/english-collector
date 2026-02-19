@@ -5,82 +5,39 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
+	"strconv"
 	"time"
+
+	"extension-backend/internal/sse/repository"
 )
 
-type Event struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
-}
-
-type TranslationEvent struct {
-	PhraseID         int               `json:"phrase_id"`
-	TraducaoCompleta string            `json:"traducao_completa"`
-	Explicacao       string            `json:"explicacao"`
-	FatiasTraducoes  map[string]string `json:"fatias_traducoes"`
-	ModeloIA         string            `json:"modelo_ia"`
-}
-
-type Client struct {
-	ID      string
-	Channel chan Event
-}
-
+// Hub gerencia conexões SSE e distribui eventos
 type Hub struct {
-	clients    map[string]*Client
-	register   chan *Client
-	unregister chan *Client
-	broadcast  chan Event
-	mu         sync.RWMutex
+	repo       *repository.Repository
+	service    *Service
 	pingTicker *time.Ticker
 	stopPing   chan struct{}
 }
 
+// NewHub cria um novo Hub com repository e service
 func NewHub() *Hub {
+	repo := repository.New()
+	service := NewService(repo)
+
 	return &Hub{
-		clients:    make(map[string]*Client),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		broadcast:  make(chan Event, 100),
-		stopPing:   make(chan struct{}),
+		repo:     repo,
+		service:  service,
+		stopPing: make(chan struct{}),
 	}
 }
 
+// GetService retorna o Service do Hub (usado pelos callers externos)
+func (h *Hub) GetService() *Service {
+	return h.service
+}
+
+// Run inicia o Hub (ping routine)
 func (h *Hub) Run() {
-	go func() {
-		for {
-			select {
-			case client := <-h.register:
-				h.mu.Lock()
-				h.clients[client.ID] = client
-				h.mu.Unlock()
-				log.Printf("[SSE] Client connected: %s (total: %d)", client.ID, len(h.clients))
-
-			case client := <-h.unregister:
-				h.mu.Lock()
-				if _, ok := h.clients[client.ID]; ok {
-					close(client.Channel)
-					delete(h.clients, client.ID)
-				}
-				h.mu.Unlock()
-				log.Printf("[SSE] Client disconnected: %s (total: %d)", client.ID, len(h.clients))
-
-			case event := <-h.broadcast:
-				h.mu.RLock()
-				for _, client := range h.clients {
-					select {
-					case client.Channel <- event:
-					default:
-						// Channel full, skip
-					}
-				}
-				h.mu.RUnlock()
-				log.Printf("[SSE] Broadcast event: %s", event.Type)
-			}
-		}
-	}()
-
 	h.startPingRoutine()
 }
 
@@ -102,67 +59,42 @@ func (h *Hub) startPingRoutine() {
 }
 
 func (h *Hub) sendPingIfHasClients() {
-	h.mu.RLock()
-	clientCount := len(h.clients)
-	h.mu.RUnlock()
-
-	if clientCount == 0 {
+	count := h.repo.Count()
+	if count == 0 {
 		return
 	}
 
-	h.Broadcast(Event{
+	h.service.BroadcastAll(repository.Event{
 		Type: "ping",
 		Payload: map[string]interface{}{
 			"timestamp":    time.Now().Unix(),
-			"client_count": clientCount,
+			"client_count": count,
 		},
 	})
 }
 
+// HasActiveClients verifica se há clientes ativos
 func (h *Hub) HasActiveClients() bool {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return len(h.clients) > 0
+	return h.repo.HasClients()
 }
 
+// ClientCount retorna o número de clientes conectados
 func (h *Hub) ClientCount() int {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return len(h.clients)
+	return h.repo.Count()
 }
 
+// Stop encerra o Hub
 func (h *Hub) Stop() {
 	close(h.stopPing)
 }
 
-func (h *Hub) Broadcast(event Event) {
-	h.broadcast <- event
-}
-
-func (h *Hub) BroadcastTranslation(phraseID int, traducao, explicacao string, fatias map[string]string, modelo string) {
-	
-	if !h.HasActiveClients() {
-		log.Printf("[SSE] No active clients, skipping translation broadcast for phrase %d", phraseID)
-		return
-	}
-
-	h.Broadcast(Event{
-		Type: "translation",
-		Payload: TranslationEvent{
-			PhraseID:         phraseID,
-			TraducaoCompleta: traducao,
-			Explicacao:       explicacao,
-			FatiasTraducoes:  fatias,
-			ModeloIA:         modelo,
-		},
-	})
-}
-
-// Handler HTTP para conexões SSE
+// Handler retorna o http.HandlerFunc para conexões SSE
+// Exige ?user_id=N no query string
 func (h *Hub) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		// SSE headers
@@ -170,25 +102,36 @@ func (h *Hub) Handler() http.HandlerFunc {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 
-		// Cria cliente
-		var clientID string
-		if reqId, ok := r.Context().Value("request_id").(string); ok && reqId != "" {
-			clientID = fmt.Sprintf("client-%s", reqId)
-		} else {
-			clientID = fmt.Sprintf("client-%p", r)
+		// Extrair user_id do query param
+		userIDStr := r.URL.Query().Get("user_id")
+		if userIDStr == "" {
+			http.Error(w, "user_id is required", http.StatusBadRequest)
+			return
 		}
 
-		client := &Client{
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+			http.Error(w, "invalid user_id", http.StatusBadRequest)
+			return
+		}
+
+		// Gerar client ID único
+		clientID := repository.GenerateClientID(userID, fmt.Sprintf("%p", r))
+
+		client := &repository.Client{
 			ID:      clientID,
-			Channel: make(chan Event, 10),
+			UserID:  userID,
+			Channel: make(chan repository.Event, 10),
 		}
 
-		// Registra cliente
-		h.register <- client
+		// Registrar cliente
+		h.repo.Add(client)
+		log.Printf("[SSE] Client connected: %s (user: %d, total: %d)", clientID, userID, h.repo.Count())
 
 		// Cleanup ao desconectar
 		defer func() {
-			h.unregister <- client
+			h.repo.Remove(client.ID)
+			log.Printf("[SSE] Client disconnected: %s (user: %d, total: %d)", clientID, userID, h.repo.Count())
 		}()
 
 		// Flush inicial
@@ -198,8 +141,8 @@ func (h *Hub) Handler() http.HandlerFunc {
 			return
 		}
 
-		// Envia evento de conexão
-		fmt.Fprintf(w, "event: connected\ndata: {\"client_id\":\"%s\"}\n\n", clientID)
+		// Evento de conexão
+		fmt.Fprintf(w, "event: connected\ndata: {\"client_id\":\"%s\",\"user_id\":%d}\n\n", clientID, userID)
 		flusher.Flush()
 
 		// Loop de eventos
