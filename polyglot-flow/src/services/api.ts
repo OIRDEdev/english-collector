@@ -148,6 +148,30 @@ class ApiService {
     await this.checkAuth();
   }
 
+  // Settings Endpoints
+  public async getSettings(userId: number): Promise<any> {
+    const response = await this.axiosInstance.get(`/settings?user_id=${userId}`);
+    return response.data;
+  }
+
+  public async updateSettings(data: Record<string, any>): Promise<any> {
+    const response = await this.axiosInstance.put('/settings', data);
+    return response.data;
+  }
+
+  public async completeOnboarding(data: {
+    user_id: number;
+    native_lang: string;
+    target_lang: string;
+    daily_minutes: number;
+    daily_cards: number;
+    plan: string;
+    level?: string;
+  }): Promise<any> {
+    const response = await this.axiosInstance.post('/settings/onboarding', data);
+    return response.data;
+  }
+
   // API Instance for other services
   public get api(): AxiosInstance {
     return this.axiosInstance;

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
+import apiService from "@/services/api";
 
 import { OnboardingLanguage } from "@/components/onboarding/OnboardingLanguage";
 import { OnboardingTime } from "@/components/onboarding/OnboardingTime";
@@ -42,6 +43,7 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState(0);
   const [data, setData] = useState<OnboardingData>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const bgRef = useRef<HTMLDivElement>(null);
   const orb1Ref = useRef<HTMLDivElement>(null);
@@ -120,18 +122,40 @@ const Onboarding = () => {
           y: -30,
           duration: 0.3,
           ease: "power2.in",
-          onComplete: () => {
+          onComplete: async () => {
             if (phase < totalPhases - 1) {
               setPhase((p) => p + 1);
             } else {
-              // Done — output JSON
+              // Done — send to API with loading
+              setIsLoading(true);
               const finalConfig = { ...newData };
               console.log("🎉 Onboarding config:", JSON.stringify(finalConfig, null, 2));
 
-              // Show alert with config then navigate
-              const msg = `Configuração salva!\n\n${JSON.stringify(finalConfig, null, 2)}`;
-              alert(msg);
-              navigate("/dashboard");
+              try {
+                const user = apiService.getUser();
+                const userId = user?.id || 1; // fallback for testing
+
+                // Loading mínimo de 2s (preparação para futuras chamadas de IA)
+                const [apiResult] = await Promise.all([
+                  apiService.completeOnboarding({
+                    user_id: userId,
+                    native_lang: finalConfig.nativeLang || "pt-br",
+                    target_lang: finalConfig.targetLang || "en",
+                    daily_minutes: parseInt(finalConfig.dailyMinutes || "15"),
+                    daily_cards: parseInt(finalConfig.dailyCards || "10"),
+                    plan: finalConfig.plan || "free",
+                  }),
+                  new Promise((resolve) => setTimeout(resolve, 2000)),
+                ]);
+
+                console.log("✅ Onboarding saved:", apiResult);
+                navigate("/dashboard");
+              } catch (error) {
+                console.error("❌ Failed to save onboarding:", error);
+                navigate("/dashboard");
+              } finally {
+                setIsLoading(false);
+              }
             }
           },
         });
@@ -250,9 +274,22 @@ const Onboarding = () => {
 
       {/* Content */}
       <div className="flex-1 flex items-center justify-center relative z-10 px-6 py-8">
-        <div ref={contentRef} className="w-full">
-          {renderPhase()}
-        </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center gap-6 animate-in fade-in duration-500">
+            <div className="relative">
+              <div className="w-16 h-16 border-2 border-primary/20 rounded-full" />
+              <div className="absolute inset-0 w-16 h-16 border-2 border-transparent border-t-primary rounded-full animate-spin" />
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-lg font-semibold text-foreground">Preparando sua experiência...</p>
+              <p className="text-sm text-muted-foreground/60">Salvando suas preferências</p>
+            </div>
+          </div>
+        ) : (
+          <div ref={contentRef} className="w-full">
+            {renderPhase()}
+          </div>
+        )}
       </div>
     </div>
   );

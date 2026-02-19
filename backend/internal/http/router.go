@@ -5,6 +5,7 @@ import (
 	"extension-backend/internal/cache"
 	"extension-backend/internal/http/handlers"
 	"extension-backend/internal/http/middleware"
+	"extension-backend/internal/settings"
 	"extension-backend/internal/sse"
 
 	"github.com/go-chi/chi/v5"
@@ -23,7 +24,7 @@ func NewRouter() chi.Router {
 	return r
 }
 
-func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub, cacheClient *cache.Client) {
+func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler, settingsHandler *settings.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub, cacheClient *cache.Client) {
 	r.Get("/health", h.HealthCheck)
 
 	// SSE endpoint para receber traduções em tempo real
@@ -81,10 +82,16 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/login", authHandler.Login)
 			r.Post("/register", authHandler.Register)
-			r.Post("/google", authHandler.GoogleLogin) // New
+			r.Post("/google", authHandler.GoogleLogin)
 			r.Post("/refresh", authHandler.RefreshToken)
-			r.Post("/logout", authHandler.Logout) // New
-            r.Get("/me", authHandler.Me) // New
+			r.Post("/logout", authHandler.Logout)
+			r.Get("/me", authHandler.Me)
+		})
+
+		r.Route("/settings", func(r chi.Router) {
+			r.Get("/", settingsHandler.GetSettings)
+			r.Put("/", settingsHandler.UpdateSettings)
+			r.Post("/onboarding", settingsHandler.CompleteOnboarding)
 		})
 
 		r.Route("/groups", func(r chi.Router) {

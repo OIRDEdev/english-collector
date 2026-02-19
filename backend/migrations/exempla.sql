@@ -183,7 +183,9 @@ CREATE TABLE refresh_tokens (
     token varchar(255) NOT NULL,
     expira_em timestamp without time zone NOT NULL,
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    revogado boolean DEFAULT false
+    revogado boolean DEFAULT false,
+    ip varchar(50),
+    user_agent text
 );
 
 
@@ -243,6 +245,6 @@ CREATE TABLE usuarios (
     senha_hash varchar(255) NOT NULL,
     token_extensao varchar(255),
     lingua_origem  varchar(20),
-    lingua_de_aprendizado  varchar(20)
+    lingua_de_aprendizado  varchar(20),  -- Added comma
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
