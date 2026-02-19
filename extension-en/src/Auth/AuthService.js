@@ -23,15 +23,14 @@ class AuthService {
                 headers: {
                     "Content-Type": "application/json"
                 }
-            });
-
+            }); 
             if (!response.ok) {
                 this.user = null;
                 return null;
             }
-
             const data = await response.json();
             this.user = data;
+            console.log("[Auth] Auth check response 2:", data);
             await this._saveUserToStorage(data);
             console.log("[Auth] User authenticated:", data.nome || data.email);
             return data;
@@ -150,7 +149,7 @@ class AuthService {
      * @returns {string}
      */
     getLoginPageUrl() {
-        return "http://localhost:5173/login";
+        return "http://localhost:8081/login";
     }
 }
 

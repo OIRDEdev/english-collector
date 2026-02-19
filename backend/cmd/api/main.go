@@ -64,7 +64,7 @@ func main() {
 	exerciseService := exSvc.New(exerciseRepository)
 
 	// Initialize SSE Hub
-	sseHub := sse.NewHub()
+	sseHub := sse.NewHub(tokenService)
 	sseHub.Run()
 	log.Println("SSE Hub started")
 
@@ -109,7 +109,7 @@ func main() {
 
 	// Setup router
 	r := apphttp.NewRouter()
-	apphttp.RegisterRoutes(r, handler, authHandler, settingsHandler, aiMiddleware, sseHub, cacheClient)
+	apphttp.RegisterRoutes(r, handler, authHandler, settingsHandler, aiMiddleware, sseHub, cacheClient, tokenService)
 
 	// Graceful shutdown
 	go func() {

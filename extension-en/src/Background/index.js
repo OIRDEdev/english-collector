@@ -11,9 +11,9 @@ import { NotificationService } from "../Offscreen/services/notification.js";
  */
 
 // ==================== AUTH INITIALIZATION ====================
-api.loadSavedAuth().then(loaded => {
-    if (loaded) console.log("[Background] Auth token loaded");
-});
+//"api.loadSavedAuth().then(loaded => {
+ //   if (loaded) console.log("[Background] Auth token loaded");
+//});
 
 // ==================== OFFSCREEN & SSE HANDLING ====================
 // Initialize offscreen for SSE
