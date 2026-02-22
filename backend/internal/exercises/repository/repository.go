@@ -6,14 +6,26 @@ import (
 
 	"extension-backend/internal/exercises"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type DBTX interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
+
 type Repository struct {
-	db *pgxpool.Pool
+	db DBTX
 }
 
 func New(db *pgxpool.Pool) *Repository {
+	return &Repository{db: db}
+}
+
+func NewWithDB(db DBTX) *Repository {
 	return &Repository{db: db}
 }
 
