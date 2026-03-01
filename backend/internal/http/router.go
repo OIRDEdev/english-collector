@@ -127,6 +127,7 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler
 				r.Get("/", h.ListExercises)
 				r.Get("/catalogo/{catalogoId}", h.GetExercisesByCatalogo)
 				r.Get("/{id}", h.GetExercise)
+				r.Post("/{id}/view", h.MarkExerciseAsViewed)
 				r.Post("/chain/next-word", h.ChainNextWord)
 			})
 		})

@@ -74,3 +74,11 @@ func (s *Service) GetExerciciosByCatalogo(ctx context.Context, catalogoID int, u
 	}
 	return exs, nil
 }
+
+// MarkExerciseAsViewed registra que um usuário visualizou um exercício
+func (s *Service) MarkExerciseAsViewed(ctx context.Context, userID int, exercicioID int) error {
+	if err := s.repo.MarkExerciseAsViewed(ctx, userID, exercicioID); err != nil {
+		return fmt.Errorf("failed to mark exercise %d as viewed for user %d: %w", exercicioID, userID, err)
+	}
+	return nil
+}
