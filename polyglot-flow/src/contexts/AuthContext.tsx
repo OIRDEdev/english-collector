@@ -6,9 +6,9 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, senha: string) => Promise<void>;
-  loginWithGoogle: (credential: string) => Promise<void>;
-  register: (nome: string, email: string, senha: string) => Promise<void>;
+  login: (email: string, senha: string) => Promise<boolean>;
+  loginWithGoogle: (credential: string) => Promise<boolean>;
+  register: (nome: string, email: string, senha: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -30,19 +30,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = useCallback(async (email: string, senha: string) => {
+  const login = useCallback(async (email: string, senha: string): Promise<boolean> => {
     await apiService.login({ email, senha });
-    setUser(apiService.getUser());
+    const u = apiService.getUser();
+    setUser(u);
+    if (u) {
+      try {
+        const settings = await apiService.getSettings(u.id);
+        return settings?.onboarding_completo || false;
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
   }, []);
 
-  const loginWithGoogle = useCallback(async (credential: string) => {
+  const loginWithGoogle = useCallback(async (credential: string): Promise<boolean> => {
     await apiService.loginWithGoogle(credential);
-    setUser(apiService.getUser());
+    const u = apiService.getUser();
+    setUser(u);
+    if (u) {
+      try {
+        const settings = await apiService.getSettings(u.id);
+        return settings?.onboarding_completo || false;
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
   }, []);
 
-  const register = useCallback(async (nome: string, email: string, senha: string) => {
+  const register = useCallback(async (nome: string, email: string, senha: string): Promise<boolean> => {
     await apiService.register({ nome, email, senha });
-    setUser(apiService.getUser());
+    const u = apiService.getUser();
+    setUser(u);
+    return false; // Registro novo sempre precisa do onboarding
   }, []);
 
   const logout = useCallback(async () => {

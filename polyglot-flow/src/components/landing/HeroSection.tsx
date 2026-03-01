@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Download, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function HeroSection() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-20">
       {/* Background glow effects */}
@@ -42,6 +46,7 @@ export function HeroSection() {
           <Button 
             variant="outline" 
             size="lg" 
+            onClick={() => isAuthenticated ? navigate('/dashboard') : navigate('/login')}
             className="h-14 px-8 text-base font-semibold border-border hover:bg-secondary/50 transition-all duration-300"
           >
             Ver Dashboard
