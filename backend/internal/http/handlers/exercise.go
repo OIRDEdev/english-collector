@@ -77,3 +77,29 @@ func (h *Handler) GetExercisesByCatalogo(w http.ResponseWriter, r *http.Request)
 
 	SendSuccess(w, http.StatusOK, "Exercises retrieved", exs)
 }
+
+// MarkExerciseAsViewed marca um exercício como já visualizado pelo usuário autenticado
+func (h *Handler) MarkExerciseAsViewed(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	idStr := chi.URLParam(r, "id")
+	exercicioID, err := strconv.Atoi(idStr)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "invalid exercise id")
+		return
+	}
+
+	claims := middleware.GetUserFromContext(ctx)
+	if claims == nil {
+		SendError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID := claims.UserID
+
+	if err := h.exerciseService.MarkExerciseAsViewed(ctx, userID, exercicioID); err != nil {
+		SendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, "Exercise marked as viewed", nil)
+}

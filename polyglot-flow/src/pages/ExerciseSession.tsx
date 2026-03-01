@@ -86,9 +86,20 @@ const ExerciseSession = () => {
         }
     };
 
-    const handleComplete = (finalScore: number) => {
+    const handleComplete = async (finalScore: number) => {
         setScore(finalScore);
         setShowResult(true);
+
+        if (id) {
+            const exerciseId = parseInt(id, 10);
+            if (!isNaN(exerciseId)) {
+                try {
+                    await exerciseService.markAsViewed(exerciseId);
+                } catch (err) {
+                    console.error("Failed to mark exercise as viewed", err);
+                }
+            }
+        }
     };
 
     const handleExitRequest = () => {

@@ -148,3 +148,50 @@ func TestGetByCatalogoID_Success(t *testing.T) {
 		t.Errorf("expected DadosExercicio to be unmarshaled, got nil")
 	}
 }
+
+func TestGetByCatalogoAndUserLanguages_Success(t *testing.T) {
+	mock, repo := setupMock(t)
+	defer mock.Close()
+
+	now := time.Now()
+	dadosJSON := []byte(`{"text":"filtered"}`)
+	userID := 1
+	catalogoID := 10
+	limit := 3
+
+	// O mock expect query de PgxMock busca substrings no select, então passamos a principal
+	mock.ExpectQuery("SELECT (.+) FROM exercicios e JOIN usuarios u").
+		WithArgs(catalogoID, userID, limit).
+		WillReturnRows(pgxmock.NewRows(
+			[]string{"id", "usuario_id", "catalogo_id", "dados_exercicio", "nivel", "criado_em"},
+		).AddRow(42, &userID, catalogoID, dadosJSON, 1, now))
+
+	exs, err := repo.GetByCatalogoAndUserLanguages(context.Background(), catalogoID, userID, limit)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(exs) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(exs))
+	}
+	if exs[0].DadosExercicio == nil {
+		t.Errorf("expected DadosExercicio to be unmarshaled, got nil")
+	}
+}
+
+func TestMarkExerciseAsViewed_Success(t *testing.T) {
+	mock, repo := setupMock(t)
+	defer mock.Close()
+
+	userID := 1
+	exercicioID := 42
+
+	// Apenas espera um EXEC bem sucedido
+	mock.ExpectExec("INSERT INTO exercicios_visualizados").
+		WithArgs(userID, exercicioID).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	err := repo.MarkExerciseAsViewed(context.Background(), userID, exercicioID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}

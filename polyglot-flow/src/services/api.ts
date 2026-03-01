@@ -176,6 +176,10 @@ class ApiService {
     return response.data;
   }
 
+  public async markExerciseAsViewed(exercicioId: number): Promise<void> {
+    await this.axiosInstance.post(`/exercises/${exercicioId}/view`);
+  }
+
   // API Instance for other services
   public get api(): AxiosInstance {
     return this.axiosInstance;

@@ -35,4 +35,9 @@ export const exerciseService = {
     );
     return response.data.data;
   },
+
+  // Mark an exercise as viewed upon completion
+  markAsViewed: async (id: number): Promise<void> => {
+    await apiService.markExerciseAsViewed(id);
+  },
 };

@@ -15,6 +15,7 @@ type RepositoryInterface interface {
 	GetByID(ctx context.Context, id int) (*Exercicio, error)
 	GetByCatalogoID(ctx context.Context, catalogoID int, limit int) ([]Exercicio, error)
 	GetByCatalogoAndUserLanguages(ctx context.Context, catalogoID int, userID int, limit int) ([]Exercicio, error)
+	MarkExerciseAsViewed(ctx context.Context, userID int, exercicioID int) error
 }
 
 // ServiceInterface define a lógica de negócio de exercícios
@@ -27,4 +28,7 @@ type ServiceInterface interface {
 
 	// Pega um exercício por ID
 	GetByID(ctx context.Context, id int) (*Exercicio, error)
+
+	// Marca um exercício como visto
+	MarkExerciseAsViewed(ctx context.Context, userID int, exercicioID int) error
 }
