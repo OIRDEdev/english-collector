@@ -1,45 +1,13 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { PenLine, ArrowRight, Check, X, Sparkles } from "lucide-react";
-
-interface TranslationQuestion {
-  id: number;
-  type: "translate" | "form-sentence";
-  prompt: string;
-  answer: string;
-  options?: string[];
-  hint?: string;
-}
-
-const MOCK_QUESTIONS: TranslationQuestion[] = [
-  {
-    id: 1,
-    type: "translate",
-    prompt: "O gato está dormindo no sofá.",
-    answer: "The cat is sleeping on the couch.",
-    hint: "Sujeito + verbo + preposição",
-  },
-  {
-    id: 2,
-    type: "translate",
-    prompt: "Eu preciso comprar comida no mercado amanhã.",
-    answer: "I need to buy food at the market tomorrow.",
-    hint: "Sujeito + verbo + objeto + lugar + tempo",
-  },
-  {
-    id: 3,
-    type: "form-sentence",
-    prompt: "Forme uma frase usando as palavras abaixo:",
-    answer: "She has been studying English for three years.",
-    options: ["years", "She", "studying", "for", "English", "three", "has", "been"],
-  },
-];
-
+import { MOCK_QUESTIONS_BY_LANG } from "./mockOnboarding/Writingtests";
 interface Props {
   onNext: (data: { writingScore: number }) => void;
+  targetLang?: string;
 }
 
-export function OnboardingWritingTest({ onNext }: Props) {
+export function OnboardingWritingTest({ onNext, targetLang = "en" }: Props) {
   const [currentQ, setCurrentQ] = useState(0);
   const [input, setInput] = useState("");
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
@@ -47,8 +15,9 @@ export function OnboardingWritingTest({ onNext }: Props) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
 
-  const question = MOCK_QUESTIONS[currentQ];
-  const totalQuestions = MOCK_QUESTIONS.length;
+  const questions = MOCK_QUESTIONS_BY_LANG[targetLang] || MOCK_QUESTIONS_BY_LANG["en"];
+  const question = questions[currentQ];
+  const totalQuestions = questions.length;
 
   const checkAnswer = () => {
     let userAnswer: string;
@@ -107,7 +76,7 @@ export function OnboardingWritingTest({ onNext }: Props) {
 
       {/* Progress */}
       <div className="flex items-center gap-2">
-        {MOCK_QUESTIONS.map((_, i) => (
+        {questions.map((_, i) => (
           <div
             key={i}
             className={cn(
@@ -158,7 +127,7 @@ export function OnboardingWritingTest({ onNext }: Props) {
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Digite a tradução em inglês..."
+              placeholder={`Digite a tradução...`}
               className="w-full h-24 bg-background/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground/30 resize-none focus:outline-none focus:border-amber-500/30 transition-all"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {

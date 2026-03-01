@@ -50,9 +50,13 @@ const Register = () => {
 
     setIsLoading(true);
     try {
-      await register(nome, email, senha);
+      const onboardingCompleted = await register(nome, email, senha);
       toast.success("Conta criada com sucesso!");
-      navigate("/onboarding");
+      if (onboardingCompleted) {
+        navigate("/dashboard");
+      } else {
+        navigate("/onboarding");
+      }
     } catch (error: any) {
       const message = error.response?.data?.error || "Erro ao criar conta. Tente novamente.";
       toast.error(message);

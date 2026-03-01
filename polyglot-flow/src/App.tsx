@@ -15,6 +15,7 @@ import Onboarding from "./pages/Onboarding";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute, PublicRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -27,15 +28,24 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/exercises" element={<Exercises />} />
-            <Route path="/exercises/Historia" element={<HistoriaSelection />} />
-            <Route path="/exercises/:type/:id" element={<ExerciseSession />} />
-            <Route path="/anki" element={<Anki />} />
-            <Route path="/conversation" element={<Conversation />} />
-            <Route path="/onboarding" element={<Onboarding />} />
+            
+            {/* Rotas Públicas (apenas se não estiver logado) */}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+            </Route>
+
+            {/* Rotas Protegidas */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/exercises" element={<Exercises />} />
+              <Route path="/exercises/Historia" element={<HistoriaSelection />} />
+              <Route path="/exercises/:type/:id" element={<ExerciseSession />} />
+              <Route path="/anki" element={<Anki />} />
+              <Route path="/conversation" element={<Conversation />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

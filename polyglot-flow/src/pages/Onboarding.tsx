@@ -175,7 +175,7 @@ const Onboarding = () => {
       case 1:
         return <OnboardingTime onNext={(d) => goNext(d)} />;
       case 2:
-        return <OnboardingWritingTest onNext={(d) => goNext(d)} />;
+        return <OnboardingWritingTest onNext={(d) => goNext(d)} targetLang={data.targetLang} />;
       case 3:
         return <OnboardingAudioTest onNext={(d) => goNext(d)} />;
       case 4:

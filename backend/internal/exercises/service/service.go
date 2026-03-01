@@ -60,14 +60,14 @@ func (s *Service) ListTiposComCatalogo(ctx context.Context) ([]exercises.TipoCom
 }
 
 // GetExerciciosByCatalogo retorna até `limit` exercícios de um catálogo
-func (s *Service) GetExerciciosByCatalogo(ctx context.Context, catalogoID int, limit int) ([]exercises.Exercicio, error) {
+func (s *Service) GetExerciciosByCatalogo(ctx context.Context, catalogoID int, userID int, limit int) ([]exercises.Exercicio, error) {
 	if limit <= 0 || limit > 10 {
 		limit = 3
 	}
 
-	exs, err := s.repo.GetByCatalogoID(ctx, catalogoID, limit)
+	exs, err := s.repo.GetByCatalogoAndUserLanguages(ctx, catalogoID, userID, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get exercises for catalogo %d: %w", catalogoID, err)
+		return nil, fmt.Errorf("failed to get exercises for catalogo %d and user %d: %w", catalogoID, userID, err)
 	}
 	if exs == nil {
 		exs = []exercises.Exercicio{}

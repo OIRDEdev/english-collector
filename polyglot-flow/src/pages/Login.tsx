@@ -45,9 +45,13 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      await login(email, senha);
+      const onboardingCompleted = await login(email, senha);
       toast.success("Login realizado com sucesso!");
-      navigate("/onboarding");
+      if (onboardingCompleted) {
+        navigate("/dashboard");
+      } else {
+        navigate("/onboarding");
+      }
     } catch (error: any) {
       const message = error.response?.data?.error || "Erro ao fazer login. Verifique suas credenciais.";
       toast.error(message);
@@ -64,9 +68,13 @@ const Login = () => {
         callback: async (response: { credential: string }) => {
           setIsLoading(true);
           try {
-            await loginWithGoogle(response.credential);
+            const onboardingCompleted = await loginWithGoogle(response.credential);
             toast.success("Login com Google realizado!");
-            navigate("/onboarding");
+            if (onboardingCompleted) {
+              navigate("/dashboard");
+            } else {
+              navigate("/onboarding");
+            }
           } catch (error: any) {
             const message = error.response?.data?.error || "Erro ao fazer login com Google.";
             toast.error(message);

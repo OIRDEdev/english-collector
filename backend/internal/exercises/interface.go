@@ -14,6 +14,7 @@ type RepositoryInterface interface {
 	// Exercícios individuais
 	GetByID(ctx context.Context, id int) (*Exercicio, error)
 	GetByCatalogoID(ctx context.Context, catalogoID int, limit int) ([]Exercicio, error)
+	GetByCatalogoAndUserLanguages(ctx context.Context, catalogoID int, userID int, limit int) ([]Exercicio, error)
 }
 
 // ServiceInterface define a lógica de negócio de exercícios
@@ -22,7 +23,7 @@ type ServiceInterface interface {
 	ListTiposComCatalogo(ctx context.Context) ([]TipoComCatalogo, error)
 
 	// Pega até N exercícios de um catálogo (quando clica num exercício)
-	GetExerciciosByCatalogo(ctx context.Context, catalogoID int, limit int) ([]Exercicio, error)
+	GetExerciciosByCatalogo(ctx context.Context, catalogoID int, userID int, limit int) ([]Exercicio, error)
 
 	// Pega um exercício por ID
 	GetByID(ctx context.Context, id int) (*Exercicio, error)

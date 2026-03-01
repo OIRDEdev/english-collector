@@ -176,3 +176,45 @@ func (r *Repository) GetByCatalogoID(ctx context.Context, catalogoID int, limit 
 	}
 	return list, rows.Err()
 }
+
+// GetByCatalogoAndUserLanguages busca exercícios filtrando pelos idiomas nativo e alvo do usuário
+func (r *Repository) GetByCatalogoAndUserLanguages(ctx context.Context, catalogoID int, userID int, limit int) ([]exercises.Exercicio, error) {
+	query := `
+		SELECT e.id, e.usuario_id, e.catalogo_id, e.dados_exercicio, e.nivel, e.criado_em
+		FROM exercicios e
+		JOIN usuarios u ON u.id = $2
+		JOIN idiomas io ON io.codigo = substring(u.lingua_origem from 1 for 2)
+		JOIN idiomas ia ON ia.codigo = substring(u.lingua_de_aprendizado from 1 for 2)
+		WHERE e.catalogo_id = $1 
+		  AND e.idioma_id_origem = io.id 
+		  AND e.idioma_id = ia.id
+		ORDER BY e.nivel ASC
+		LIMIT $3
+	`
+
+	rows, err := r.db.Query(ctx, query, catalogoID, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []exercises.Exercicio
+	for rows.Next() {
+		var ex exercises.Exercicio
+		var dadosJSON []byte
+
+		if err := rows.Scan(
+			&ex.ID, &ex.UsuarioID, &ex.CatalogoID,
+			&dadosJSON, &ex.Nivel, &ex.CriadoEm,
+		); err != nil {
+			return nil, err
+		}
+
+		if dadosJSON != nil {
+			json.Unmarshal(dadosJSON, &ex.DadosExercicio)
+		}
+
+		list = append(list, ex)
+	}
+	return list, rows.Err()
+}

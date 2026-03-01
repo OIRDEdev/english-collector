@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"extension-backend/internal/http/middleware"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -59,7 +61,15 @@ func (h *Handler) GetExercisesByCatalogo(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	exs, err := h.exerciseService.GetExerciciosByCatalogo(ctx, catalogoID, limit)
+	// Obter userID do contexto
+	claims := middleware.GetUserFromContext(ctx)
+	if claims == nil {
+		SendError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID := claims.UserID
+
+	exs, err := h.exerciseService.GetExerciciosByCatalogo(ctx, catalogoID, userID, limit)
 	if err != nil {
 		SendError(w, http.StatusInternalServerError, err.Error())
 		return
