@@ -268,7 +268,7 @@ CREATE TABLE usuarios (
     email varchar(150) NOT NULL,
     senha_hash varchar(255) NOT NULL,
     token_extensao varchar(255),
-    lingua_origem  varchar(20),
-    lingua_de_aprendizado  varchar(20),  -- Added comma
+    idioma_origem_id INTEGER REFERENCES idiomas(id),
+    idioma_aprendizado_id INTEGER REFERENCES idiomas(id),
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );

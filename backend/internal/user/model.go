@@ -3,12 +3,14 @@ package user
 import "time"
 
 type User struct {
-	ID             int       `json:"id"`
-	Nome           string    `json:"nome"`
-	Email          string    `json:"email"`
-	SenhaHash      string    `json:"-"`
-	TokenExtensao  string    `json:"token_extensao,omitempty"`
-	CriadoEm       time.Time `json:"criado_em"`
+	ID                  int       `json:"id"`
+	Nome                string    `json:"nome"`
+	Email               string    `json:"email"`
+	SenhaHash           string    `json:"-"`
+	TokenExtensao       string    `json:"token_extensao,omitempty"`
+	IdiomaOrigemID      *int      `json:"idioma_origem_id,omitempty"`
+	IdiomaAprendizadoID *int      `json:"idioma_aprendizado_id,omitempty"`
+	CriadoEm            time.Time `json:"criado_em"`
 }
 
 type Preferences struct {

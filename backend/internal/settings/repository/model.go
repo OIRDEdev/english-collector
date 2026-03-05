@@ -23,14 +23,16 @@ type UpdateSettingsInput struct {
 	NivelProficiencia    *string        `json:"nivel_proficiencia,omitempty"`
 	MinutosDiarios       *int           `json:"minutos_diarios,omitempty"`
 	CardsDiarios         *int           `json:"cards_diarios,omitempty"`
+	NativeLangID         *int           `json:"native_lang_id,omitempty"`
+	TargetLangID         *int           `json:"target_lang_id,omitempty"`
 	Config               map[string]any `json:"config,omitempty"`
 }
 
 // OnboardingInput payload enviado pelo Onboarding.tsx
 type OnboardingInput struct {
 	UserID       int    `json:"user_id"`
-	NativeLang   string `json:"native_lang"`
-	TargetLang   string `json:"target_lang"`
+	NativeLangID int    `json:"native_lang_id"`
+	TargetLangID int    `json:"target_lang_id"`
 	DailyMinutes int    `json:"daily_minutes"`
 	DailyCards   int    `json:"daily_cards"`
 	Plan         string `json:"plan"`
