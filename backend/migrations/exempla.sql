@@ -53,10 +53,23 @@ CREATE TABLE exercicios (
     usuario_id integer,
     dados_exercicio jsonb NOT NULL,
     nivel integer DEFAULT 1,
+    idioma_id integer,
+    idioma_id_origem integer,
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     catalogo_id integer
 );
 
+
+CREATE TABLE idiomas (
+    id integer NOT NULL,
+    codigo varchar(10) NOT NULL,
+    nome varchar(100) NOT NULL,
+    ativo boolean DEFAULT true,
+    criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE idiomas ADD CONSTRAINT idiomas_pkey PRIMARY KEY (id);
+ALTER TABLE idiomas ADD CONSTRAINT idiomas_codigo_key UNIQUE (codigo);
 
 
 CREATE TABLE exercicios_catalogo (
@@ -69,6 +82,17 @@ CREATE TABLE exercicios_catalogo (
     proef_base integer DEFAULT 10,
     proef_bonus integer DEFAULT 0
 );
+
+
+CREATE TABLE exercicios_visualizados (
+    usuario_id integer NOT NULL,
+    exercicio_id integer NOT NULL,
+    visualizado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE exercicios_visualizados ADD CONSTRAINT exercicios_visualizados_pkey PRIMARY KEY (usuario_id, exercicio_id);
+ALTER TABLE exercicios_visualizados ADD CONSTRAINT exercicios_visualizados_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES usuarios(id);
+ALTER TABLE exercicios_visualizados ADD CONSTRAINT exercicios_visualizados_exercicio_id_fkey FOREIGN KEY (exercicio_id) REFERENCES exercicios(id);
 
 
 

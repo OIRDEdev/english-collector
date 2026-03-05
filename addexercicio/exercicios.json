@@ -1,0 +1,287 @@
+{
+    "English": [
+        {
+            "texto": "My friend told me that since I passed my driving test, I'm now a fully experienced driver. But I've only driven a car for an hour in total!",
+            "instrucao": "Ache a falha lógica",
+            "palavra_alvo": "experience"
+        },
+        {
+            "opcoes": [
+                {
+                    "texto": "Sufficient",
+                    "correta": true
+                },
+                {
+                    "texto": "Excellent",
+                    "correta": false
+                }
+            ],
+            "instrucao": "Arraste para o sinônimo correto",
+            "palavra_central": "Adequate"
+        },
+        {
+            "instrucao": "Remova o ruído da frase",
+            "tempo_leitura": 60,
+            "texto_completo": "In my honest opinion, I truly believe that it is absolutely essential to always try your very best in every single situation.",
+            "palavras_erradas": [
+                "honest",
+                "truly",
+                "absolutely",
+                "always",
+                "very",
+                "every",
+                "single"
+            ]
+        },
+        {
+            "tags": [
+                "Programming",
+                "Logic"
+            ],
+            "resposta": "Algorithm",
+            "descricao": "A set of rules or steps that are followed to solve a problem or perform a task, especially by a computer.",
+            "instrucao": "Forme a palavra:",
+            "distratores": "M, A, G, O, L, R, T, H, I, P, E, X"
+        }
+    ],
+    "coreano": [
+        {
+            "texto": "지민이는 매일 운동해서 건강하다. 그런데 오늘 아침에 운동을 하지 않았기 때문에, 지민이는 오늘 하루 종일 피곤할 것이다.",
+            "instrucao": "논리적 오류를 찾으세요.",
+            "palavra_alvo": "피곤할 것이다"
+        },
+        {
+            "opcoes": [
+                {
+                    "texto": "필수적이다",
+                    "correta": true
+                },
+                {
+                    "texto": "사소하다",
+                    "correta": false
+                },
+                {
+                    "texto": "특별하다",
+                    "correta": false
+                },
+                {
+                    "texto": "평범하다",
+                    "correta": false
+                }
+            ],
+            "instrucao": "올바른 동의어를 고르세요.",
+            "palavra_central": "중요하다"
+        },
+        {
+            "instrucao": "문장에서 불필요한 단어를 제거하세요.",
+            "tempo_leitura": 60,
+            "texto_completo": "많은 학생들은 (대부분) 주말에 도서관에서 (아마도) 공부한다. (그러나) 그것은 (항상) 시험 기간 동안 (진짜) 특히 그렇다.",
+            "palavras_erradas": [
+                "대부분",
+                "아마도",
+                "그러나",
+                "항상",
+                "진짜"
+            ]
+        },
+        {
+            "tags": [
+                "문법",
+                "조사"
+            ],
+            "resposta": "에 대해서",
+            "descricao": "특정 주제나 대상에 관하여 설명하거나 이야기할 때 사용되는 표현입니다.",
+            "instrucao": "제시된 글자들을 조합하여 설명에 맞는 표현을 만드세요.",
+            "distratores": "에대해서은는이가"
+        }
+    ],
+    "japones": [
+        {
+            "texto": "彼は毎日日本語を勉強しているので、全く話せません。",
+            "instrucao": "Ache a falha lógica",
+            "palavra_alvo": "話せません"
+        },
+        {
+            "opcoes": [
+                {
+                    "texto": "困難な",
+                    "correta": true
+                },
+                {
+                    "texto": "簡単な",
+                    "correta": false
+                },
+                {
+                    "texto": "楽しい",
+                    "correta": false
+                }
+            ],
+            "instrucao": "Arraste para o sinônimo correto",
+            "palavra_central": "難しい"
+        },
+        {
+            "instrucao": "Remova o ruído da frase",
+            "tempo_leitura": 60,
+            "texto_completo": "彼女は毎日そして図書館で魚日本語のしかし本を泳ぎます読みます。",
+            "palavras_erradas": [
+                "そして",
+                "魚",
+                "しかし",
+                "泳ぎます"
+            ]
+        },
+        {
+            "tags": [
+                "Gramática",
+                "Verbos"
+            ],
+            "resposta": "受身形",
+            "descricao": "動詞が「〜される」という意味を表す形です。例えば、「書く」が「書かれる」になります。",
+            "instrucao": "Forme a palavra:",
+            "distratores": "受, み, 形, う, け, い, に, ち, を"
+        }
+    ],
+    "Spanish": [
+        {
+            "texto": "Todos los felinos maúllan. Mi perro maúlla. Por lo tanto, mi perro es un felino.",
+            "instrucao": "Encuentra la falla lógica",
+            "palavra_alvo": "felino"
+        },
+        {
+            "opcoes": [
+                {
+                    "texto": "atento",
+                    "correta": true
+                },
+                {
+                    "texto": "distraído",
+                    "correta": false
+                },
+                {
+                    "texto": "amable",
+                    "correta": false
+                },
+                {
+                    "texto": "lento",
+                    "correta": false
+                }
+            ],
+            "instrucao": "Arrastra al sinónimo correcto",
+            "palavra_central": "cauto"
+        },
+        {
+            "instrucao": "Elimina el ruido de la frase",
+            "tempo_leitura": 60,
+            "texto_completo": "El nuevo café en la esquina, que por cierto es bastante popular, ofrece un menú muy interesante y una atmósfera algo acogedora, lo que lo hace sin duda un lugar para visitar.",
+            "palabras_erradas": [
+                "que por cierto",
+                "bastante",
+                "muy",
+                "algo",
+                "sin duda"
+            ]
+        },
+        {
+            "tags": [
+                "Medio Ambiente",
+                "Ecología",
+                "Desarrollo"
+            ],
+            "respuesta": "sostenibilidad",
+            "descricao": "Capacidad de satisfacer las necesidades del presente sin comprometer la habilidad de las futuras generaciones para satisfacer sus propias necesidades.",
+            "instrucao": "Forma la palabra:",
+            "distratores": "c g h j k"
+        }
+    ],
+    "frances": [
+        {
+            "texto": "Bien qu'il pleuve très fort, le jardin est complètement sec car nous n'avons pas arrosé les plantes depuis des semaines.",
+            "instrucao": "Ache a falha lógica",
+            "palavra_alvo": "sec"
+        },
+        {
+            "opcoes": [
+                {
+                    "texto": "détester",
+                    "correta": false
+                },
+                {
+                    "texto": "aimer",
+                    "correta": true
+                },
+                {
+                    "texto": "critiquer",
+                    "correta": false
+                },
+                {
+                    "texto": "oublier",
+                    "correta": false
+                }
+            ],
+            "instrucao": "Arraste para o sinônimo correto",
+            "palavra_central": "apprécier"
+        },
+        {
+            "instrucao": "Remova o ruído da frase",
+            "tempo_leitura": 60,
+            "texto_completo": "Apprendre une nouvelle langue est un défi passionnant et souvent difficile. Il faut de la patience, de la persévérance et un bon dictionnaire épais. Les dictionnaires sont parfois très lourds. La pratique régulière, l'immersion et la motivation sont des clés essentielles pour réussir à parler une langue.",
+            "palavras_erradas": [
+                "épais",
+                "parfois très lourds",
+                "à parler"
+            ]
+        },
+        {
+            "tags": [
+                "grammaire",
+                "conjugaison",
+                "mode verbal"
+            ],
+            "resposta": "SUBJONCTIF",
+            "descricao": "Un mode verbal utilisé pour exprimer le doute, le souhait, le sentiment, la nécessité ou une action non réalisée dans une proposition subordonnée.",
+            "instrucao": "Forme a palavra:",
+            "distratores": "F O C I J B N T U S Y"
+        }
+    ],
+    "italiano": [
+        {
+            "texto": "Ogni volta che mangio la pizza, sono felice. Oggi non ho mangiato la pizza, quindi oggi non sono felice.",
+            "instrucao": "Ache a falha lógica",
+            "palavra_alvo": "pizza"
+        },
+        {
+            "opcoes": [
+                {
+                    "texto": "tranquillo",
+                    "correta": false
+                },
+                {
+                    "texto": "gioioso",
+                    "correta": true
+                }
+            ],
+            "instrucao": "Arraste para o sinônimo correto",
+            "palavra_central": "felice"
+        },
+        {
+            "instrucao": "Remova o ruído da frase",
+            "tempo_leitura": 60,
+            "texto_completo": "Firenze è una città incredibilmente ricca di arte e storia, famosa per i suoi musei, come gli Uffizi, e il magnifico Duomo. Molti turisti visitano le sue piazze affascinanti e assaggiano la cucina locale, che include la buona bistecca alla fiorentina. Gli autobus sono spesso puntuali. Passeggiare lungo l'Arno è un'esperienza indimenticabile, ma anche la televisione è molto popolare.",
+            "palavras_erradas": [
+                "autobus",
+                "televisione"
+            ]
+        },
+        {
+            "tags": [
+                "verbo",
+                "azione",
+                "lavoro"
+            ],
+            "resposta": "studiare",
+            "descricao": "L'azione di dedicarsi all'apprendimento di conoscenze o abilità, spesso per scopi educativi o professionali.",
+            "instrucao": "Forme a palavra:",
+            "distratores": "sudiarteo"
+        }
+    ]
+}
