@@ -85,6 +85,13 @@ func (s *Service) UpdateSettings(ctx context.Context, input repository.UpdateSet
 		}
 	}
 
+	// Atualizar idiomas do usuário na tabela usuarios se enviados
+	if input.NativeLangID != nil && input.TargetLangID != nil {
+		if err := s.repo.UpdateUserLanguages(ctx, input.UserID, *input.NativeLangID, *input.TargetLangID); err != nil {
+			return nil, fmt.Errorf("failed to update user languages: %w", err)
+		}
+	}
+
 	if err := s.repo.Upsert(ctx, current); err != nil {
 		return nil, fmt.Errorf("failed to update settings: %w", err)
 	}
@@ -94,15 +101,15 @@ func (s *Service) UpdateSettings(ctx context.Context, input repository.UpdateSet
 
 // CompleteOnboarding salva os dados de onboarding (línguas + preferências)
 func (s *Service) CompleteOnboarding(ctx context.Context, input repository.OnboardingInput) (*repository.UserSettings, error) {
-	// 1. Atualizar idiomas na tabela usuarios
-	if err := s.repo.UpdateUserLanguages(ctx, input.UserID, input.NativeLang, input.TargetLang); err != nil {
+	// 1. Atualizar idiomas na tabela usuarios (agora usando IDs)
+	if err := s.repo.UpdateUserLanguages(ctx, input.UserID, input.NativeLangID, input.TargetLangID); err != nil {
 		return nil, fmt.Errorf("failed to update user languages: %w", err)
 	}
 
 	// 2. Criar/atualizar preferências
 	us := &repository.UserSettings{
 		UsuarioID:            input.UserID,
-		IdiomaPadraoTraducao: input.NativeLang,
+		IdiomaPadraoTraducao: "pt-BR",
 		AutoTraduzir:         false,
 		TemaInterface:        "dark",
 		NivelProficiencia:    input.Level,

@@ -139,8 +139,8 @@ const Onboarding = () => {
                 const [apiResult] = await Promise.all([
                   apiService.completeOnboarding({
                     user_id: userId,
-                    native_lang: finalConfig.nativeLang || "pt-br",
-                    target_lang: finalConfig.targetLang || "en",
+                    native_lang_id: parseInt(finalConfig.nativeLang || "0"),
+                    target_lang_id: parseInt(finalConfig.targetLang || "0"),
                     daily_minutes: parseInt(finalConfig.dailyMinutes || "15"),
                     daily_cards: parseInt(finalConfig.dailyCards || "10"),
                     plan: finalConfig.plan || "free",

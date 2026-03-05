@@ -178,18 +178,18 @@ func (r *Repository) GetByCatalogoID(ctx context.Context, catalogoID int, limit 
 }
 
 // GetByCatalogoAndUserLanguages busca exercícios filtrando pelos idiomas nativo e alvo do usuário,
+// incluindo exercícios globais (usuario_id IS NULL) e do próprio usuário,
 // e omitindo os que ele já viu na tabela exercicios_visualizados.
 func (r *Repository) GetByCatalogoAndUserLanguages(ctx context.Context, catalogoID int, userID int, limit int) ([]exercises.Exercicio, error) {
 	query := `
 		SELECT e.id, e.usuario_id, e.catalogo_id, e.dados_exercicio, e.nivel, e.criado_em
 		FROM exercicios e
 		JOIN usuarios u ON u.id = $2
-		JOIN idiomas io ON io.codigo = substring(u.lingua_origem from 1 for 2)
-		JOIN idiomas ia ON ia.codigo = substring(u.lingua_de_aprendizado from 1 for 2)
 		LEFT JOIN exercicios_visualizados ev ON ev.exercicio_id = e.id AND ev.usuario_id = $2
-		WHERE e.catalogo_id = $1 
-		  AND e.idioma_id_origem = io.id 
-		  AND e.idioma_id = ia.id
+		WHERE e.catalogo_id = $1
+		  AND e.idioma_id_origem = u.idioma_origem_id
+		  AND e.idioma_id = u.idioma_aprendizado_id
+		  AND (e.usuario_id = $2 OR e.usuario_id IS NULL)
 		  AND ev.exercicio_id IS NULL
 		ORDER BY RANDOM()
 		LIMIT $3

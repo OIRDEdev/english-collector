@@ -165,14 +165,19 @@ class ApiService {
 
   public async completeOnboarding(data: {
     user_id: number;
-    native_lang: string;
-    target_lang: string;
+    native_lang_id: number;
+    target_lang_id: number;
     daily_minutes: number;
     daily_cards: number;
     plan: string;
     level?: string;
   }): Promise<any> {
     const response = await this.axiosInstance.post('/settings/onboarding', data);
+    return response.data;
+  }
+
+  public async getIdiomas(): Promise<any[]> {
+    const response = await this.axiosInstance.get('/idiomas');
     return response.data;
   }
 

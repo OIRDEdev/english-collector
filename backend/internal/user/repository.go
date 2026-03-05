@@ -27,12 +27,13 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 
 func (r *Repository) GetByID(ctx context.Context, id int) (*User, error) {
 	query := `
-		SELECT id, nome, email, senha_hash, token_extensao, criado_em
+		SELECT id, nome, email, senha_hash, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em
 		FROM usuarios WHERE id = $1
 	`
 	var u User
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao, &u.CriadoEm,
+		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao,
+		&u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -42,12 +43,13 @@ func (r *Repository) GetByID(ctx context.Context, id int) (*User, error) {
 
 func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-		SELECT id, nome, email, senha_hash, token_extensao, criado_em
+		SELECT id, nome, email, senha_hash, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em
 		FROM usuarios WHERE email = $1
 	`
 	var u User
 	err := r.db.QueryRow(ctx, query, email).Scan(
-		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao, &u.CriadoEm,
+		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao,
+		&u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -57,12 +59,13 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 
 func (r *Repository) GetByExtensionToken(ctx context.Context, token string) (*User, error) {
 	query := `
-		SELECT id, nome, email, senha_hash, token_extensao, criado_em
+		SELECT id, nome, email, senha_hash, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em
 		FROM usuarios WHERE token_extensao = $1
 	`
 	var u User
 	err := r.db.QueryRow(ctx, query, token).Scan(
-		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao, &u.CriadoEm,
+		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao,
+		&u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -71,7 +74,7 @@ func (r *Repository) GetByExtensionToken(ctx context.Context, token string) (*Us
 }
 
 func (r *Repository) GetAll(ctx context.Context) ([]User, error) {
-	query := `SELECT id, nome, email, token_extensao, criado_em FROM usuarios ORDER BY criado_em DESC`
+	query := `SELECT id, nome, email, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em FROM usuarios ORDER BY criado_em DESC`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, err
@@ -81,7 +84,7 @@ func (r *Repository) GetAll(ctx context.Context) ([]User, error) {
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Nome, &u.Email, &u.TokenExtensao, &u.CriadoEm); err != nil {
+		if err := rows.Scan(&u.ID, &u.Nome, &u.Email, &u.TokenExtensao, &u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

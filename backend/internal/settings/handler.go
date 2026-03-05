@@ -83,8 +83,8 @@ func (h *Handler) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if input.NativeLang == "" || input.TargetLang == "" {
-		http.Error(w, "native_lang and target_lang are required", http.StatusBadRequest)
+	if input.NativeLangID == 0 || input.TargetLangID == 0 {
+		http.Error(w, "native_lang_id and target_lang_id are required", http.StatusBadRequest)
 		return
 	}
 
