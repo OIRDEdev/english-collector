@@ -1,0 +1,91 @@
+[{
+  "id": 3,
+  "usuario_id": null,
+  "dados_exercicio": "{\"opcoes\": [{\"texto\": \"Quick\", \"correta\": true}, {\"texto\": \"Slow\", \"correta\": false}], \"instrucao\": \"Arraste para o sinônimo correto\", \"palavra_central\": \"Rapid\"}",
+  "nivel": 2,
+  "criado_em": "2026-02-12 00:08:15.320905",
+  "catalogo_id": 5,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 4,
+  "usuario_id": 1,
+  "dados_exercicio": "{\"id\": 88, \"tags\": [\"go\", \"syntax\"], \"resposta\": \"FUNCTION\", \"descricao\": \"A reusable block of code in Go.\", \"instrucao\": \"Forme a palavra técnica:\", \"distratores\": \"XYBLOCK\"}",
+  "nivel": 2,
+  "criado_em": "2026-02-12 00:00:00",
+  "catalogo_id": 7,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 7,
+  "usuario_id": null,
+  "dados_exercicio": "{\"texto\": \"A beleza de Gertrudes fascinava todo mundo e a própria Gertrudes. Os espelhos pasmavam diante de seu rosto, recusando-se a refletir as pessoas da casa e muito menos as visitas. Não ousavam abranger o corpo inteiro de Gertrudes. Era impossível, de tão belo, e o espelho do banheiro, que se atreveu a isto, partiu-se em mil estilhaços. A moça já não podia sair à rua, pois os veículos paravam à revelia dos condutores, e estes, por sua vez, perdiam toda capacidade de ação. Houve um engarrafamento monstro, que durou uma semana, embora Gertrudes houvesse voltado logo para casa. O Senado aprovou lei de emergência, proibindo Gertrudes de chegar à janela. A moça vivia confinada num salão em que só penetrava sua mãe, pois o mordomo se suicidara com uma foto de Gertrudes sobre o peito. Gertrudes não podia fazer nada. Nascera assim, este era o seu destino fatal: a extrema beleza. E era feliz, sabendo-se incomparável. Por falta de ar puro, acabou sem condições de vida, e um dia cerrou os olhos para sempre.\", \"tempo_leitura\": 200, \"perguntas do texto\": {\"pergunta 1\": {\"pergunta\": \"Qual foi a consequência social da beleza de Gertrudes quando ela saía à rua?\", \"resposta\": \"Sua beleza causava o travamento total da cidade, pois os condutores perdiam a capacidade de agir ao vê-la, gerando engarrafamentos que duravam dias.\"}, \"pergunta 2\": {\"opcoes\": [\"Declarou-a patrimônio cultural da humanidade.\", \"Contratou-a como embaixatriz da beleza nacional.\", \"Aprovou uma lei de emergência proibindo-a de chegar à janela.\", \"Exilou-a para uma ilha deserta para evitar acidentes.\"], \"pergunta\": \"O que o Senado decidiu fazer em relação a Gertrudes?\", \"resposta_correta\": \"Aprovou uma lei de emergência proibindo-a de chegar à janela.\"}, \"pergunta 3\": {\"pergunta\": \"Clique na parte do texto que descreve o que aconteceu com o espelho que tentou refletir o corpo inteiro de Gertrudes.\", \"trecho_alvo\": \"partiu-se em mil estilhaços\"}}}",
+  "nivel": 1,
+  "criado_em": "2026-02-12 05:06:05",
+  "catalogo_id": 6,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 5,
+  "usuario_id": 1,
+  "dados_exercicio": "{\"texto\": \"Since the new update increased system performance, users are now complaining about how much faster the app loads.\", \"instrucao\": \"Ache a falha lógica\", \"palavra_alvo\": \"faster\"}",
+  "nivel": 2,
+  "criado_em": "2026-02-12 06:06:06",
+  "catalogo_id": 4,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 1,
+  "usuario_id": null,
+  "dados_exercicio": "{\"instrucao\": \"Remova o ruído da frase\", \"tempo_leitura\": 60, \"texto_completo\": \"The blue water bottle is although very cold today.\", \"palavras_erradas\": [\"although\"]}",
+  "nivel": 1,
+  "criado_em": "2026-02-12 00:08:15.320905",
+  "catalogo_id": 2,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 2,
+  "usuario_id": 1,
+  "dados_exercicio": "{\"audio_url\": \"https://api.polylang.com/audio/1.mp3\", \"instrucao\": \"Ouça e digite a frase capturada\", \"texto_total\": \"I don't wanna go home yet\", \"parte_oculta\": \"wanna go home\", \"texto_lacunado\": \"I don't ___________ yet\"}",
+  "nivel": 1,
+  "criado_em": "2026-02-12 00:08:15.320905",
+  "catalogo_id": 3,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 8,
+  "usuario_id": 1,
+  "dados_exercicio": "{\"instrucao\": \"Construa uma frase lógica alternando palavras com o sistema.\", \"palavra_inicial\": \"I\"}",
+  "nivel": 2,
+  "criado_em": "2026-02-13 19:04:34",
+  "catalogo_id": 8,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 9,
+  "usuario_id": 1,
+  "dados_exercicio": "{\"data\": {\"wordList\": [{\"en\": \"house\", \"pt\": \"casa\"}, {\"en\": \"water\", \"pt\": \"água\"}, {\"en\": \"pointer\", \"pt\": \"ponteiro\"}, {\"en\": \"channel\", \"pt\": \"canal\"}, {\"en\": \"concurrency\", \"pt\": \"concorrência\"}, {\"en\": \"compressor\", \"pt\": \"compressor\"}, {\"en\": \"filter\", \"pt\": \"filtro\"}, {\"en\": \"maintenance\", \"pt\": \"manutenção\"}, {\"en\": \"refrigerator\", \"pt\": \"geladeira\"}, {\"en\": \"leak\", \"pt\": \"vazamento\"}, {\"en\": \"tool\", \"pt\": \"ferramenta\"}, {\"en\": \"developer\", \"pt\": \"desenvolvedor\"}], \"timeLimit\": 60}}",
+  "nivel": 1,
+  "criado_em": "2026-02-13 19:20:40",
+  "catalogo_id": 9,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 10,
+  "usuario_id": 1,
+  "dados_exercicio": "{\"data\": {\"time\": \"300\", \"answer\": \"Nevertheless\", \"sentence\": \"The technological advancement in renewable energy has seen unprecedented growth over the last decade, leading to a significant reduction in global carbon emissions. Many countries are now investing heavily in solar and wind farms to replace fossil fuels. ______, there are still many regions that rely on coal due to economic constraints and lack of infrastructure.\", \"connector\": [\"Nevertheless\", \"Consequently\"]}}",
+  "nivel": 2,
+  "criado_em": "2026-02-13 18:15:57",
+  "catalogo_id": 10,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}, {
+  "id": 6,
+  "usuario_id": null,
+  "dados_exercicio": "{\"texto\": \"Submergir-se em a noite! Assim como às vezes se enterra a cabeça no peito para refletir, fundir-se assim por completo em a noite. Em redor dormem os homens. Um pequeno espetáculo, um auto-engado inocente, é o dormir em casas, em camas sólidas, sob teto seguro, estendidos ou encolhidos, sobre colchões, entre lençóis, sob cobertas; na realidade, encontram-se reunidos como outrora uma vez e como depois em uma comarca deserta: um acampamento à intempérie, uma incontável quantidade de pessoas, um exército, um povo sob um céu frio, sobre uma terra fria, atirados ao solo ali onde antes se esteve de pé, com a fronte apertada contra o braço, e a cara contra o solo, respirando tranquilamente. E tu velas, és um dos vigias, encontras ao próximo agitando o madeiro aceso que tomaste do montão de estilhas, junto a ti. Por que velas? Alguém tem que velar, se disse. Alguém precisa estar aí.\", \"tempo_leitura\": 65, \"perguntas do texto\": {\"pergunta 1\": {\"pergunta\": \"Como o narrador descreve a situação real da humanidade enquanto dorme, apesar da segurança das casas?\", \"resposta\": \"Ele descreve a humanidade como um exército ou um povo reunido em uma comarca deserta, em um acampamento à intempérie, sobre uma terra fria e sob um céu frio.\"}, \"pergunta 2\": {\"opcoes\": [\"Ele é um invasor que observa o acampamento.\", \"Ele é um dos vigias que precisa velar enquanto os outros dormem.\", \"Ele é um viajante perdido procurando abrigo.\", \"Ele é um soldado desertando de seu exército.\"], \"pergunta\": \"Qual é a função do personagem que está acordado ('tu') na narrativa?\", \"resposta_correta\": \"Ele é um dos vigias que precisa velar enquanto os outros dormem.\"}, \"pergunta 3\": {\"pergunta\": \"Clique na parte do texto que define o ato de dormir em casas e camas sólidas.\", \"trecho_alvo\": \"um auto-engado inocente\"}}}",
+  "nivel": 1,
+  "criado_em": "2026-02-12 05:05:05",
+  "catalogo_id": 6,
+  "idioma_id": 1,
+  "idioma_id_origem": 7
+}]
