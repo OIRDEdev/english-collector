@@ -9,9 +9,11 @@ internal/exercises/
 ├── model.go              # TipoExercicio, ExercicioCatalogo, Exercicio, CatalogoItem, TipoComCatalogo
 ├── interface.go           # RepositoryInterface + ServiceInterface
 ├── repository/
-│   └── repository.go     # Queries pgxpool (JOINs nas 3 tabelas)
-└── service/
-    └── service.go        # ListTiposComCatalogo, GetExerciciosByCatalogo, GetByID
+│   └── repository.go     # Queries pgxpool (JOINs nas 3 tabelas + filtro por idioma)
+├── service/
+│   └── service.go        # ListTiposComCatalogo, GetExerciciosByCatalogo, GetByID, MarkExerciseAsViewed
+└── tests/
+    └── repository_test.go # Testes unitários com pgxmock
 ```
 
 ## Schema SQL
@@ -35,6 +37,8 @@ CREATE TABLE exercicios_catalogo (
     descricao TEXT,
     ativo BOOLEAN DEFAULT TRUE,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    proef_base INTEGER DEFAULT 10,
+    proef_bonus INTEGER DEFAULT 0,
     CONSTRAINT fk_catalogo_tipo FOREIGN KEY (tipo_id) REFERENCES tipos_exercicio(id) ON DELETE RESTRICT
 );
 ```
@@ -43,12 +47,25 @@ CREATE TABLE exercicios_catalogo (
 ```sql
 CREATE TABLE exercicios (
     id SERIAL PRIMARY KEY,
-    usuario_id INTEGER,           -- NULL = global
-    catalogo_id INTEGER NOT NULL, -- FK para exercicios_catalogo
-    dados_exercicio JSONB,        -- Payload polimórfico
+    usuario_id INTEGER,                            -- NULL = global, NOT NULL = do usuário
+    catalogo_id INTEGER NOT NULL,                   -- FK para exercicios_catalogo
+    dados_exercicio JSONB,                          -- Payload polimórfico
     nivel INTEGER DEFAULT 1,
+    idioma_id INTEGER REFERENCES idiomas(id),       -- Idioma alvo (aprendizado)
+    idioma_id_origem INTEGER REFERENCES idiomas(id),-- Idioma nativo (origem)
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_ex_catalogo FOREIGN KEY (catalogo_id) REFERENCES exercicios_catalogo(id) ON DELETE CASCADE
+    CONSTRAINT fk_ex_catalogo FOREIGN KEY (catalogo_id) REFERENCES exercicios_catalogo(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ex_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+```
+
+### 4. `exercicios_visualizados` — Tracking de exercícios já vistos
+```sql
+CREATE TABLE exercicios_visualizados (
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+    exercicio_id INTEGER NOT NULL REFERENCES exercicios(id),
+    visualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, exercicio_id)
 );
 ```
 
@@ -56,9 +73,21 @@ CREATE TABLE exercicios (
 ```
 tipos_exercicio (1) ──→ (N) exercicios_catalogo (1) ──→ (N) exercicios
       "Memória"              "Flash Recall"              { dados_exercicio JSONB }
-      "Lógica"               "Logic Breaker"
-      "Linguagem"            "Clarity Master"
+      "Lógica"               "Logic Breaker"              ↕ idioma_id → idiomas
+      "Linguagem"            "Clarity Master"             ↕ idioma_id_origem → idiomas
+
+usuarios.idioma_aprendizado_id ──→ exercicios.idioma_id   (par de idiomas)
+usuarios.idioma_origem_id      ──→ exercicios.idioma_id_origem
 ```
+
+## Exercícios Globais vs. Pessoais
+
+| Tipo | `usuario_id` | Quem cria | Visível para |
+|------|-------------|-----------|--------------|
+| **Global** | `NULL` | Admins / Sistema | Todos os usuários do par de idiomas |
+| **Pessoal** | `ID do usuario` | O próprio usuário | Apenas o dono |
+
+A query principal filtra com `(e.usuario_id = $2 OR e.usuario_id IS NULL)`, combinando ambos.
 
 ## Componentes
 
@@ -90,29 +119,56 @@ O payload do campo `dados_exercicio` varia conforme o catálogo:
 
 ### 3. Repository (`repository/repository.go`)
 
-| Método | Query |
-|--------|-------|
+| Método | Descrição |
+|--------|-----------|
 | `ListTipos` | Todos os tipos, ordenados por ID |
-| `ListCatalogo` | Todos os catálogos ativos, JOIN com tipos, ordenados por tipo_id → nome |
+| `ListCatalogo` | Todos os catálogos ativos, JOIN com tipos |
 | `GetCatalogoByTipo` | Catálogos filtrados por tipo_id |
 | `GetByID` | Exercício por ID |
 | `GetByCatalogoID` | Exercícios por catalogo_id, com LIMIT, ordenados por nivel |
+| `GetByCatalogoAndUserLanguages` | **Query principal** — filtra por idioma do usuário (FK), globais + pessoais, exclui visualizados |
+| `MarkExerciseAsViewed` | Insere em `exercicios_visualizados` (ON CONFLICT DO NOTHING) |
+
+### Query Principal (`GetByCatalogoAndUserLanguages`)
+
+```sql
+SELECT e.id, e.usuario_id, e.catalogo_id, e.dados_exercicio, e.nivel, e.criado_em
+FROM exercicios e
+JOIN usuarios u ON u.id = $2
+LEFT JOIN exercicios_visualizados ev ON ev.exercicio_id = e.id AND ev.usuario_id = $2
+WHERE e.catalogo_id = $1
+  AND e.idioma_id_origem = u.idioma_origem_id      -- FK: idioma nativo
+  AND e.idioma_id = u.idioma_aprendizado_id        -- FK: idioma alvo
+  AND (e.usuario_id = $2 OR e.usuario_id IS NULL)  -- Globais + pessoais
+  AND ev.exercicio_id IS NULL                       -- Exclui já vistos
+ORDER BY RANDOM()
+LIMIT $3
+```
+
+**Como funciona:**
+1. `JOIN usuarios` busca as FKs de idioma do usuário logado.
+2. Filtra exercícios pelo par exato `idioma_origem × idioma_aprendizado`.
+3. Inclui exercícios globais (`usuario_id IS NULL`) **e** do próprio usuário.
+4. `LEFT JOIN exercicios_visualizados` exclui os que já foram vistos.
+5. `ORDER BY RANDOM()` garante variedade.
 
 ### 4. Service (`service/service.go`)
 
 | Método | Descrição |
 |--------|-----------|
 | `ListTiposComCatalogo` | Busca tipos + catálogos → agrupa catálogos por tipo_id |
-| `GetExerciciosByCatalogo` | Busca até N exercícios (default 3, max 10) por catalogo_id |
+| `GetExerciciosByCatalogo` | Busca até N exercícios (default 3, max 10) por catalogo_id, filtrando por idioma do usuário |
 | `GetByID` | Delega ao repository |
+| `MarkExerciseAsViewed` | Delega ao repository |
 
 ## Rotas
 
 | Rota | Método | Handler | Descrição |
-|------|--------|---------|-----------|-
+|------|--------|---------|-----------|
 | `/api/v1/exercises` | GET | `ListExercises` | Tipos + catálogos agrupados |
-| `/api/v1/exercises/catalogo/{catalogoId}` | GET | `GetExercisesByCatalogo` | Até 3 exercícios de um catálogo (`?limit=N`) |
+| `/api/v1/exercises/catalogo/{catalogoId}` | GET | `GetExercisesByCatalogo` | Até 3 exercícios (filtrados por idioma do user, exclui vistos) |
 | `/api/v1/exercises/{id}` | GET | `GetExercise` | Exercício por ID |
+| `/api/v1/exercises/{id}/view` | POST | `MarkExerciseAsViewed` | Marca exercício como visto |
 | `/api/v1/exercises/chain/next-word` | POST | `ChainNextWord` | IA gera próxima palavra (co-op sentence) |
 
 ### Exemplos de resposta
@@ -125,14 +181,7 @@ O payload do campo `dados_exercicio` varia conforme o catálogo:
     {
       "tipo": { "id": 1, "nome": "Memória", "descricao": "Exercícios de memória" },
       "catalogos": [
-        { "id": 1, "nome": "Flash Recall", "descricao": "Memorize padrões.", "tipo_id": 1, "tipo_nome": "Memória", "ativo": true },
-        { "id": 2, "nome": "Sequence Keeper", "descricao": "Repita sequências.", "tipo_id": 1, "tipo_nome": "Memória", "ativo": true }
-      ]
-    },
-    {
-      "tipo": { "id": 2, "nome": "Lógica", "descricao": "Exercícios de lógica" },
-      "catalogos": [
-        { "id": 3, "nome": "Logic Breaker", "descricao": "Encontre contradições.", "tipo_id": 2, "tipo_nome": "Lógica", "ativo": true }
+        { "id": 1, "nome": "Flash Recall", "descricao": "Memorize padrões.", "tipo_id": 1, "tipo_nome": "Memória", "ativo": true }
       ]
     }
   ]
@@ -150,6 +199,25 @@ O payload do campo `dados_exercicio` varia conforme o catálogo:
 }
 ```
 
+## Testes
+
+Os testes unitários utilizam `pgxmock` e ficam em `tests/repository_test.go`.
+
+```bash
+cd backend && go test -v ./internal/exercises/tests/...
+```
+
+| Teste | O que valida |
+|-------|-------------|
+| `TestListTipos_Success` | Listagem de tipos |
+| `TestListCatalogo_Success` | Listagem de catálogos com JOIN |
+| `TestGetCatalogoByTipo_Success` | Filtro por tipo_id |
+| `TestGetByID_Success` | Busca por ID + unmarshal JSONB |
+| `TestGetByID_NotFound` | Erro quando não encontra |
+| `TestGetByCatalogoID_Success` | Busca por catalogo_id com LIMIT |
+| `TestGetByCatalogoAndUserLanguages_Success` | Query principal com JOIN usuarios + LEFT JOIN visualizados |
+| `TestMarkExerciseAsViewed_Success` | INSERT em exercicios_visualizados |
+
 ## Wiring em `main.go`
 
 ```go
@@ -158,11 +226,12 @@ exerciseService := exSvc.New(exerciseRepository)
 // Passado ao handlers.NewHandler(...)
 ```
 
-## Notas
+## Índices de Performance
 
-- **Sem mapeamento de tipos**: Removido o antigo `mapTipoToFrontend`/`mapTipoToBackend`. O tipo agora vem diretamente da tabela `tipos_exercicio`.
-- **Catálogo como fonte de verdade**: O nome do exercício e sua categorização vêm do catálogo, não mais de `tipo_componente`.
-- **Exercícios globais vs. personalizados**: `usuario_id IS NULL` = global, senão personalizado (padrão atual mantido na tabela `exercicios`).
+```sql
+CREATE INDEX idx_exercicios_idioma_pair ON exercicios (idioma_id, idioma_id_origem);
+CREATE INDEX idx_exercicios_usuario_id ON exercicios (usuario_id);
+```
 
 ## Chain of Sentence (AI Co-op)
 
