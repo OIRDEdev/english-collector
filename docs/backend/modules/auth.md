@@ -96,7 +96,7 @@ O router aplica `middleware.Auth(tokenService)` nas seguintes rotas:
 1. Extension/Frontend chama `GET /auth/me` com `credentials: 'include'`.
 2. Middleware lê cookie `access_token` → valida JWT → injeta `UserID` no context.
 3. Handler busca `User` no banco via `GetByID(userID)`.
-4. Retorna `{id, nome, email}`.
+4. Retorna `{id, nome, email, idioma_origem_id, idioma_aprendizado_id}`.
 
 ## SSE e Autenticação
 
