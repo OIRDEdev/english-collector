@@ -47,10 +47,12 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 		FROM usuarios WHERE email = $1
 	`
 	var u User
-	err := r.db.QueryRow(ctx, query, email).Scan(
+	err := r.db.QueryRow(ctx, query, email).Scan	(
 		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao,
 		&u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm,
 	)
+	fmt.Println("u", u)
+	fmt.Println("err", err)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
