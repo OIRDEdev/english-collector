@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"extension-backend/internal/http/middleware"
 	"extension-backend/internal/phrase"
 	"extension-backend/internal/shared"
 	"net/http"
@@ -23,7 +24,13 @@ func (h *Handler) ListPhrases(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.phraseService.GetAllPaginated(ctx, phrase.PaginationParams{
+	claims := middleware.GetUserFromContext(ctx)
+	if claims == nil {
+		SendError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	result, err := h.phraseService.GetByUserIDPaginated(ctx, claims.UserID, phrase.PaginationParams{
 		Cursor: cursor,
 		Limit:  limit,
 	})
