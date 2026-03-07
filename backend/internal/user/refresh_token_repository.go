@@ -3,15 +3,13 @@ package user
 import (
 	"context"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RefreshTokenRepository struct {
-	db *pgxpool.Pool
+	db DBTX
 }
 
-func NewRefreshTokenRepository(db *pgxpool.Pool) *RefreshTokenRepository {
+func NewRefreshTokenRepository(db DBTX) *RefreshTokenRepository {
 	return &RefreshTokenRepository{db: db}
 }
 
