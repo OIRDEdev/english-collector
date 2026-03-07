@@ -49,7 +49,7 @@ func main() {
 
 	// Initialize repositories
 	userRepo := user.NewRepository(db)
-	refreshTokenRepo := user.NewRefreshTokenRepository(db)
+	tokenRepo := user.NewRefreshTokenRepository(db)
 	phraseRepository := phraseRepo.New(db)
 	groupRepo := group.NewRepository(db)
 	ankiRepository := ankiRepo.New(db)
@@ -57,7 +57,7 @@ func main() {
 
 	// Initialize services
 	tokenService := user.NewTokenService()
-	userService := user.NewService(userRepo, refreshTokenRepo, tokenService)
+	userService := user.NewService(userRepo, tokenRepo, tokenService)
 	phraseService := phraseSvc.New(phraseRepository)
 	groupService := group.NewService(groupRepo)
 	ankiService := ankiSvc.New(ankiRepository)
