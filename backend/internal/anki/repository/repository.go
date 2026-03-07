@@ -7,14 +7,22 @@ import (
 
 	"extension-backend/internal/anki"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type Repository struct {
-	db *pgxpool.Pool
+// DBTX define an interface for database transactions.
+type DBTX interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func New(db *pgxpool.Pool) *Repository {
+type Repository struct {
+	db DBTX
+}
+
+func New(db DBTX) *Repository {
 	return &Repository{db: db}
 }
 
