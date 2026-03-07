@@ -87,8 +87,8 @@ const Dashboard = () => {
           getGroups(),
         ]);
 
-        const adaptedPhrases = phrasesResult.data.map(adaptPhrase);
-        const adaptedGroups: GroupWithCount[] = groupsData.map((g: Group) => ({
+        const adaptedPhrases = (phrasesResult.data || []).map(adaptPhrase);
+        const adaptedGroups: GroupWithCount[] = (groupsData || []).map((g: Group) => ({
           nome: g.nome_grupo,
           cor: g.cor_etiqueta || "#22d3ee",
           count: 0,
@@ -123,7 +123,7 @@ const Dashboard = () => {
         limit: PAGE_SIZE,
       });
 
-      const newPhrases = result.data.map(adaptPhrase);
+      const newPhrases = (result.data || []).map(adaptPhrase);
 
       // Append sem causar re-render desnecessário
       setPhrases((prev) => [...prev, ...newPhrases]);
