@@ -20,6 +20,10 @@ type Service struct {
 	client *genai.Client
 }
 
+func (s *Service) GetClient() *genai.Client {
+	return s.client
+}
+
 func NewService() (*Service, error) {
 	apiKey := os.Getenv("API_KEY_GEMINI")
 	if apiKey == "" {

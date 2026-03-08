@@ -105,7 +105,7 @@ func main() {
 	settingsHandler := settings.NewHandler(settingsService)
 
 	// Initialize handler
-	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService, aiService)
+	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService, aiService, cacheClient)
 
 	// Setup router
 	r := apphttp.NewRouter()

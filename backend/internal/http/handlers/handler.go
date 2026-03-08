@@ -5,6 +5,7 @@ import (
 
 	"extension-backend/internal/ai"
 	"extension-backend/internal/anki"
+	"extension-backend/internal/cache"
 	"extension-backend/internal/exercises"
 	"extension-backend/internal/group"
 	"extension-backend/internal/phrase"
@@ -19,6 +20,7 @@ type Handler struct {
 	ankiService     anki.ServiceInterface
 	exerciseService exercises.ServiceInterface
 	aiService       *ai.Service
+	cacheClient     *cache.Client
 }
 
 func NewHandler(
@@ -29,6 +31,7 @@ func NewHandler(
 	ankiService anki.ServiceInterface,
 	exerciseService exercises.ServiceInterface,
 	aiService *ai.Service,
+	cacheClient *cache.Client,
 ) *Handler {
 	return &Handler{
 		userService:     userService,
@@ -38,6 +41,7 @@ func NewHandler(
 		ankiService:     ankiService,
 		exerciseService: exerciseService,
 		aiService:       aiService,
+		cacheClient:     cacheClient,
 	}
 }
 

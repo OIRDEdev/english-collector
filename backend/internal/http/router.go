@@ -37,6 +37,8 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler
 		r.Get("/", h.Welcome)
 
 		// ==================== PUBLIC ROUTES ====================
+		r.Get("/conversation", h.ConversationWS) // Audio WS Pipeline Upgrade point
+		
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/login", authHandler.Login)
 			r.Post("/register", authHandler.Register)
