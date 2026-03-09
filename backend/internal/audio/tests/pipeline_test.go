@@ -32,7 +32,7 @@ func (m *mockSTTSession) Commit() error {
 	return nil
 }
 
-func (m *mockSTTSession) WaitForTranscript() (string, error) {
+func (m *mockSTTSession) WaitForTranscript(ctx context.Context) (string, error) {
 	return m.transcript, nil
 }
 
@@ -69,14 +69,13 @@ func (m *mockLLM) GenerateStream(ctx context.Context, history []audio.Conversati
 
 // ========= Tests =========
 
-func TestAudioPipeline_WSFlow(t *testing.T) {
+func TestAudioPipeline_FullTurn(t *testing.T) {
 	factory := &mockSTTFactory{nextTranscript: "hello"}
 	tts := &mockTTS{}
 	llm := &mockLLM{}
 
 	pipeline := processor.NewPipeline(factory, tts, llm, nil)
 
-	// Set up a local test HTTP server to test websockets
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{}
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -87,10 +86,7 @@ func TestAudioPipeline_WSFlow(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Convert http:// link to ws://
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-
-	// Connect as a client
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
 		t.Fatalf("failed to dial: %v", err)
@@ -98,33 +94,29 @@ func TestAudioPipeline_WSFlow(t *testing.T) {
 	defer conn.Close()
 
 	// 1. Send setup
-	err = conn.WriteJSON(audio.WebsocketMessage{Type: "setup"})
-	if err != nil {
+	if err := conn.WriteJSON(audio.WebsocketMessage{Type: "setup"}); err != nil {
 		t.Fatalf("failed to send setup: %v", err)
 	}
 
 	// 2. Send audio chunk (triggers session creation)
-	err = conn.WriteJSON(audio.WebsocketMessage{
+	if err := conn.WriteJSON(audio.WebsocketMessage{
 		Type:  "audio",
-		Audio: "dGVzdC1hdWRpby1ieXRlcw==", // base64 encoded fake PCM
-	})
-	if err != nil {
+		Audio: "dGVzdC1hdWRpby1ieXRlcw==",
+	}); err != nil {
 		t.Fatalf("failed to send audio: %v", err)
 	}
 
 	// 3. Send audio_end (triggers commit → transcript → LLM → TTS)
-	err = conn.WriteJSON(audio.WebsocketMessage{Type: "audio_end"})
-	if err != nil {
+	if err := conn.WriteJSON(audio.WebsocketMessage{Type: "audio_end"}); err != nil {
 		t.Fatalf("failed to send audio_end: %v", err)
 	}
 
-	// 4. Read responses: expect stt, text(s), audio(s)
-	receivedTypes := map[string]int{}
-	for i := 0; i < 5; i++ {
-		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	// 4. Read all responses from the turn
+	received := map[string]int{}
+	for i := 0; i < 10; i++ {
+		conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			// May timeout after getting all messages, which is acceptable
 			break
 		}
 
@@ -132,16 +124,20 @@ func TestAudioPipeline_WSFlow(t *testing.T) {
 		if err := json.Unmarshal(msg, &payload); err != nil {
 			t.Fatalf("failed to unmarshal: %v", err)
 		}
-		receivedTypes[payload.Type]++
+		received[payload.Type]++
 	}
 
-	// We must have received at least an STT event
-	if receivedTypes["stt"] < 1 {
-		t.Errorf("Expected at least 1 stt event, got %d. All received: %v", receivedTypes["stt"], receivedTypes)
+	// Validate expected events: stt, text(s), audio(s), tts_end
+	if received["stt"] < 1 {
+		t.Errorf("Expected at least 1 stt event, got %d. Received: %v", received["stt"], received)
 	}
-
-	// We should have received text events from LLM
-	if receivedTypes["text"] < 1 {
-		t.Errorf("Expected at least 1 text event, got %d. All received: %v", receivedTypes["text"], receivedTypes)
+	if received["text"] < 1 {
+		t.Errorf("Expected at least 1 text event, got %d. Received: %v", received["text"], received)
+	}
+	if received["audio"] < 1 {
+		t.Errorf("Expected at least 1 audio event, got %d. Received: %v", received["audio"], received)
+	}
+	if received["tts_end"] < 1 {
+		t.Errorf("Expected at least 1 tts_end event, got %d. Received: %v", received["tts_end"], received)
 	}
 }

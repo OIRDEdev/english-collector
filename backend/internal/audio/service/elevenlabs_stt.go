@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
+	"time"
 
 	"extension-backend/internal/audio"
 
@@ -63,10 +65,11 @@ func (f *ElevenLabsSTTFactory) NewSession(ctx context.Context) (audio.STTSession
 // ElevenLabsSTTSession implements audio.STTSession.
 // Represents a single speech turn WebSocket connection.
 type ElevenLabsSTTSession struct {
-	conn *websocket.Conn
+	conn      *websocket.Conn
+	closeOnce sync.Once
 }
 
-// sttMessage represents any message from the ElevenLabs STT WebSocket
+// sttMessage represents any message from the ElevenLabs STT WebSocket.
 type sttMessage struct {
 	MessageType string `json:"message_type"`
 	Text        string `json:"text"`
@@ -140,47 +143,77 @@ func (s *ElevenLabsSTTSession) Commit() error {
 	return s.conn.WriteJSON(payload)
 }
 
-// WaitForTranscript bloqueia até receber `committed_transcript` e retorna o texto.
-func (s *ElevenLabsSTTSession) WaitForTranscript() (string, error) {
+// WaitForTranscript bloqueia até receber `committed_transcript`, respeitando ctx.
+// Retorna o texto transcrito ou erro se contexto cancelar/timeout.
+func (s *ElevenLabsSTTSession) WaitForTranscript(ctx context.Context) (string, error) {
 	if s.conn == nil {
 		return "", fmt.Errorf("sessão STT não inicializada")
 	}
 
-	for {
-		_, msg, err := s.conn.ReadMessage()
-		if err != nil {
-			return "", fmt.Errorf("[STT] erro lendo transcrição: %w", err)
-		}
+	// Canal para receber resultado da leitura do WS (rode em goroutine separada
+	// porque conn.ReadMessage é bloqueante e não aceita context)
+	type readResult struct {
+		text string
+		err  error
+	}
+	resultCh := make(chan readResult, 1)
 
-		var resp sttMessage
-		if err := json.Unmarshal(msg, &resp); err != nil {
-			log.Printf("[STT] Payload JSON desconhecido: %s", string(msg))
-			continue
-		}
+	go func() {
+		for {
+			// Set deadline para cada leitura individual — evita pendurar forever
+			s.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 
-		if resp.Error != "" {
-			return "", fmt.Errorf("[STT] erro do provedor: %s", resp.Error)
-		}
-
-		switch resp.MessageType {
-		case "committed_transcript":
-			log.Printf("[STT] Transcrição final recebida: %s", resp.Text)
-			return resp.Text, nil
-		case "partial_transcript":
-			// Podemos logar parciais para debug, mas não retornamos ainda
-			if resp.Text != "" {
-				log.Printf("[STT] Parcial: %s", resp.Text)
+			_, msg, err := s.conn.ReadMessage()
+			if err != nil {
+				resultCh <- readResult{err: fmt.Errorf("[STT] erro lendo transcrição: %w", err)}
+				return
 			}
-		default:
-			log.Printf("[STT] Mensagem ignorada: %s", resp.MessageType)
+
+			var resp sttMessage
+			if err := json.Unmarshal(msg, &resp); err != nil {
+				log.Printf("[STT] Payload JSON desconhecido: %s", string(msg))
+				continue
+			}
+
+			if resp.Error != "" {
+				resultCh <- readResult{err: fmt.Errorf("[STT] erro do provedor: %s", resp.Error)}
+				return
+			}
+
+			switch resp.MessageType {
+			case "committed_transcript":
+				log.Printf("[STT] Transcrição final recebida: %s", resp.Text)
+				resultCh <- readResult{text: resp.Text}
+				return
+			case "partial_transcript":
+				if resp.Text != "" {
+					log.Printf("[STT] Parcial: %s", resp.Text)
+				}
+			default:
+				log.Printf("[STT] Mensagem ignorada: %s", resp.MessageType)
+			}
 		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// Forçar encerramento da leitura definindo deadline imediato
+		s.conn.SetReadDeadline(time.Now())
+		return "", ctx.Err()
+	case result := <-resultCh:
+		// Resetar deadline para operações subsequentes
+		s.conn.SetReadDeadline(time.Time{})
+		return result.text, result.err
 	}
 }
 
-// Close encerra a conexão WebSocket da sessão.
+// Close encerra a conexão WebSocket da sessão. Seguro para chamar múltiplas vezes.
 func (s *ElevenLabsSTTSession) Close() error {
-	if s.conn != nil {
-		return s.conn.Close()
-	}
-	return nil
+	var closeErr error
+	s.closeOnce.Do(func() {
+		if s.conn != nil {
+			closeErr = s.conn.Close()
+		}
+	})
+	return closeErr
 }

@@ -13,7 +13,7 @@ type STTSessionFactory interface {
 type STTSession interface {
 	SendAudio(audio []byte) error
 	Commit() error
-	WaitForTranscript() (string, error)
+	WaitForTranscript(ctx context.Context) (string, error)
 	Close() error
 }
 
