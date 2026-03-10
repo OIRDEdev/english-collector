@@ -232,3 +232,46 @@ func (r *Repository) MarkExerciseAsViewed(ctx context.Context, userID int, exerc
 	_, err := r.db.Exec(ctx, query, userID, exercicioID)
 	return err
 }
+
+// ListHistorias retorna exercícios de história filtrados por idiomas do usuário e excluindo já visualizados
+func (r *Repository) ListHistorias(ctx context.Context, userID int, limit int) ([]exercises.Exercicio, error) {
+	query := `
+		SELECT e.id, e.usuario_id, e.catalogo_id, e.dados_exercicio, e.nivel, e.criado_em
+		FROM exercicios e
+		JOIN usuarios u ON u.id = $1
+		JOIN exercicios_catalogo c ON c.id = e.catalogo_id AND c.nome = 'historia'
+		LEFT JOIN exercicios_visualizados ev ON ev.exercicio_id = e.id AND ev.usuario_id = $1
+		WHERE e.idioma_id_origem = u.idioma_origem_id
+		  AND e.idioma_id = u.idioma_aprendizado_id
+		  AND (e.usuario_id = $1 OR e.usuario_id IS NULL)
+		  AND ev.exercicio_id IS NULL
+		ORDER BY e.criado_em DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []exercises.Exercicio
+	for rows.Next() {
+		var ex exercises.Exercicio
+		var dadosJSON []byte
+
+		if err := rows.Scan(
+			&ex.ID, &ex.UsuarioID, &ex.CatalogoID,
+			&dadosJSON, &ex.Nivel, &ex.CriadoEm,
+		); err != nil {
+			return nil, err
+		}
+
+		if dadosJSON != nil {
+			json.Unmarshal(dadosJSON, &ex.DadosExercicio)
+		}
+
+		list = append(list, ex)
+	}
+	return list, rows.Err()
+}

@@ -103,3 +103,30 @@ func (h *Handler) MarkExerciseAsViewed(w http.ResponseWriter, r *http.Request) {
 
 	SendSuccess(w, http.StatusOK, "Exercise marked as viewed", nil)
 }
+
+// ListHistories retorna histórias disponíveis para o usuário autenticado
+func (h *Handler) ListHistories(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	claims := middleware.GetUserFromContext(ctx)
+	if claims == nil {
+		SendError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID := claims.UserID
+
+	limit := 20
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsedLimit, err := strconv.Atoi(l); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	exs, err := h.exerciseService.ListHistorias(ctx, userID, limit)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SendSuccess(w, http.StatusOK, "Histories retrieved", exs)
+}

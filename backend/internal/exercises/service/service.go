@@ -82,3 +82,19 @@ func (s *Service) MarkExerciseAsViewed(ctx context.Context, userID int, exercici
 	}
 	return nil
 }
+
+// ListHistorias retorna histórias disponíveis para o usuário
+func (s *Service) ListHistorias(ctx context.Context, userID int, limit int) ([]exercises.Exercicio, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+
+	exs, err := s.repo.ListHistorias(ctx, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list historias for user %d: %w", userID, err)
+	}
+	if exs == nil {
+		exs = []exercises.Exercicio{}
+	}
+	return exs, nil
+}
