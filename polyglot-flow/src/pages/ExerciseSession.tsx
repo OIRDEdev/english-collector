@@ -54,9 +54,8 @@ const ExerciseSession = () => {
 
                 setExercise({
                     tipo: catalogName,
-                    data: exercises[0].dados_exercicio ?? {},
+                    data: ex.dados_exercicio ?? {},
                 });
-                console.log(exercise);
                 setNextId(null);
                 setAllExercises([]);
                 return;
@@ -152,7 +151,7 @@ const ExerciseSession = () => {
     }
 
     // Map catalog name to component key
-    const catalogName = exercise.tipo.toLowerCase();
+    const catalogName = exercise.tipo.toLowerCase().replace(/\s+/g, '');
     
     // Map catalog names to component identifiers
     const getComponentKey = (name: string): string => {

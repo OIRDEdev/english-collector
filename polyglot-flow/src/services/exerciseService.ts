@@ -36,6 +36,14 @@ export const exerciseService = {
     return response.data.data;
   },
 
+  // Lista histórias disponíveis para o usuário
+  listHistories: async (limit = 20): Promise<ExerciseItem[]> => {
+    const response = await apiService.api.get<ApiResponse<ExerciseItem[]>>(
+      `/exercises/histories?limit=${limit}`
+    );
+    return response.data.data;
+  },
+
   // Mark an exercise as viewed upon completion
   markAsViewed: async (id: number): Promise<void> => {
     await apiService.markExerciseAsViewed(id);

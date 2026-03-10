@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { BookOpen, Clock, HelpCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,20 +8,17 @@ import type { ExerciseItem } from "@/types/api";
 
 const HistoriaSelection = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const catalogoId = searchParams.get("catalogo");
   const [stories, setStories] = useState<ExerciseItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadStories();
-  }, [catalogoId]);
+  }, []);
 
   const loadStories = async () => {
     setLoading(true);
     try {
-      if (!catalogoId) return;
-      const exercises = await exerciseService.getByCatalogo(parseInt(catalogoId, 10), 20);
+      const exercises = await exerciseService.listHistories(20);
       setStories(exercises);
     } catch (error) {
       console.error("Failed to load stories:", error);
@@ -68,7 +65,7 @@ const HistoriaSelection = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/exercises")}
+              onClick={() => navigate("/dashboard")}
               className="rounded-full hover:bg-white/5"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -107,7 +104,7 @@ const HistoriaSelection = () => {
               return (
                 <button
                   key={story.id}
-                  onClick={() => navigate(`/exercises/Leitura Imersa/${story.id}`)}
+                  onClick={() => navigate(`/exercises/leituraimersa/${story.id}`)}
                   className={cn(
                     "group relative text-left bg-card/30 backdrop-blur-md rounded-2xl border border-white/5",
                     "p-6 transition-all duration-300",

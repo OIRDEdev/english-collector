@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Exercises from "./pages/Exercises";
 import ExerciseSession from "./pages/ExerciseSession";
 import HistoriaSelection from "./pages/HistoriaSelection";
+import Video from "./pages/Video";
 import Anki from "./pages/Anki";
 import Conversation from "./pages/Conversation";
 import Onboarding from "./pages/Onboarding";
@@ -39,7 +40,8 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/exercises" element={<Exercises />} />
-              <Route path="/exercises/Historia" element={<HistoriaSelection />} />
+              <Route path="/historia" element={<HistoriaSelection />} />
+              <Route path="/video" element={<Video />} />
               <Route path="/exercises/:type/:id" element={<ExerciseSession />} />
               <Route path="/anki" element={<Anki />} />
               <Route path="/conversation" element={<Conversation />} />

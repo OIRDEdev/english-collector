@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Languages, Settings, Shield, BarChart3, Layers, Brain, GalleryVerticalEnd, MessageCircle } from "lucide-react";
+import { Languages, Settings, Shield, BarChart3, Layers, Brain, GalleryVerticalEnd, MessageCircle, BookOpen, Video } from "lucide-react";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 
 interface Grupo {
@@ -81,6 +81,22 @@ export function DashboardSidebar({
                   <Link to="/exercises">
                     <Brain className="w-4 h-4" />
                     <span>Exercícios</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/historia'}>
+                  <Link to="/historia">
+                    <BookOpen className="w-4 h-4" />
+                    <span>Leitura Imersa</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === '/video'}>
+                  <Link to="/video">
+                    <Video className="w-4 h-4" />
+                    <span>Vídeos</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
