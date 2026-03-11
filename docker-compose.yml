@@ -4,19 +4,35 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: backend-api
+    container_name: backend
     ports:
       - "8080:8080"
     env_file:
       - .env
     depends_on:
-      - polyglot-flow
+      - frontend
 
-  polyglot-flow:
+  frontend:
     build:
       context: ./polyglot-flow
-    container_name: polyglot-flow
+    container_name: frontend
     ports:
-      - "3000:3000"
+      - "8081:8081"
     env_file:
       - .env
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"

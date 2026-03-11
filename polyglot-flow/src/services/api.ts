@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { LoginRequest, LoginResponse, GoogleAuthRequest, User } from '@/types/api';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+// Fallback to /api/v1 to allow reverse proxy (e.g. Nginx/ngrok) to handle routing
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 // Token Storage Keys - Only User is stored in localStorage now
 const USER_KEY = 'polyglotflow_user';

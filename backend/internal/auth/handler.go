@@ -34,8 +34,8 @@ func (h *Handler) setCookies(w http.ResponseWriter, tokens *user.AuthTokens) {
 		Value:    tokens.AccessToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false, // Set to true in production (HTTPS)
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true, // Set to true in production (HTTPS)
+		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(1 * time.Hour),
 	})
 
@@ -44,8 +44,8 @@ func (h *Handler) setCookies(w http.ResponseWriter, tokens *user.AuthTokens) {
 		Value:    tokens.RefreshToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
 	})
 }
