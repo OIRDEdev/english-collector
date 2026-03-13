@@ -2,13 +2,20 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { Menu, Video as VideoIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { VideoGrid, VideoData } from "@/components/video/VideoGrid";
+
+const mockVideos: VideoData[] = Array.from({ length: 10 }).map((_, i) => ({
+  id: `video-${i}`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
+}));
 
 const Video = () => {
   const navigate = useNavigate();
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-zinc-50 dark:bg-zinc-950">
         <DashboardSidebar
           grupos={[]}
           activeGroup={null}
@@ -18,35 +25,34 @@ const Video = () => {
 
         <main className="flex-1 flex flex-col animate-in fade-in duration-500">
           {/* Header */}
-          <header className="h-16 border-b border-border/50 flex items-center px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+          <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-6 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-10">
             <SidebarTrigger className="mr-4 md:hidden">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <div className="flex items-center gap-3 text-foreground">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <VideoIcon className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-3 text-zinc-900 dark:text-zinc-50">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-500/10 rounded-xl">
+                <VideoIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold leading-none">Vídeos</h1>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Assista e aprenda com vídeos
+                <h1 className="text-xl font-semibold leading-none tracking-tight">Vídeos</h1>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium">
+                  Assista e aprenda com vídeos do YouTube
                 </p>
               </div>
             </div>
           </header>
 
           {/* Content */}
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="text-center space-y-4">
-              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                <VideoIcon className="w-10 h-10 text-primary/60" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold text-foreground">Em breve</h2>
-                <p className="text-muted-foreground max-w-sm">
-                  A seção de vídeos está sendo preparada. Volte em breve para assistir conteúdos incríveis!
+          <div className="flex-1 p-6 lg:p-8 xl:p-10 overflow-y-auto w-full">
+            <div className="space-y-6">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Recomendados para você</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-sm max-w-2xl">
+                  Pratique sua audição e expanda seu vocabulário com essa seleção de vídeos curtos.
                 </p>
               </div>
+              
+              <VideoGrid videos={mockVideos} />
             </div>
           </div>
         </main>

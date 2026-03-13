@@ -10,6 +10,7 @@ import Exercises from "./pages/Exercises";
 import ExerciseSession from "./pages/ExerciseSession";
 import HistoriaSelection from "./pages/HistoriaSelection";
 import Video from "./pages/Video";
+import VideoPlayer from "./pages/VideoPlayer";
 import Anki from "./pages/Anki";
 import Conversation from "./pages/Conversation";
 import Onboarding from "./pages/Onboarding";
@@ -41,8 +42,9 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/exercises" element={<Exercises />} />
               <Route path="/historia" element={<HistoriaSelection />} />
-              <Route path="/video" element={<Video />} />
               <Route path="/exercises/:type/:id" element={<ExerciseSession />} />
+              <Route path="/video" element={<Video />} />
+              <Route path="/video/:videoId" element={<VideoPlayer />} />
               <Route path="/anki" element={<Anki />} />
               <Route path="/conversation" element={<Conversation />} />
               <Route path="/onboarding" element={<Onboarding />} />

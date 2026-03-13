@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"log"
+	"net"
 	"os"
 	"time"
 
@@ -26,16 +27,35 @@ func Connect() (*pgxpool.Pool, error) {
 	config.MinConns = 1
 	config.MaxConnLifetime = time.Hour
 	config.MaxConnIdleTime = 30 * time.Minute
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	config.ConnConfig.LookupFunc = func(ctx context.Context, host string) ([]string, error) {
+		addrs, err := net.LookupIP(host)
+		if err != nil {
+			return nil, err
+		}
+
+		var ipv4 []string
+		for _, ip := range addrs {
+			if ip.To4() != nil {
+				ipv4 = append(ipv4, ip.String())
+			}
+		}
+		log.Printf("Resolved %s to %v\n", host, ipv4)
+		return ipv4, nil
+	}
+
+
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	
 	pool, err = pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
+		log.Printf("Database connection error: %v\n", err)
 		return nil, err
 	}
 	
 	if err := pool.Ping(ctx); err != nil {
+		log.Printf("Database ping error: %v\n", err)
 		return nil, err
 	}
 	//dados := inicializarBancoDeDados(pool)

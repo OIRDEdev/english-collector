@@ -19,7 +19,7 @@ type Client struct {
 func New() (*Client, error) {
 	addr := os.Getenv("REDIS_URL")
 	if addr == "" {
-		addr = "localhost:6379"
+		addr = "redis:6379"
 	}
 
 	password := os.Getenv("REDIS_PASSWORD")
