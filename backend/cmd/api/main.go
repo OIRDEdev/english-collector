@@ -28,6 +28,7 @@ import (
 	settingsRepo "extension-backend/internal/settings/repository"
 	"extension-backend/internal/sse"
 	"extension-backend/internal/user"
+	"extension-backend/internal/youtube"
 
 	"github.com/joho/godotenv"
 )
@@ -104,12 +105,16 @@ func main() {
 	settingsService := settings.NewService(settingsRepository)
 	settingsHandler := settings.NewHandler(settingsService)
 
+	// Initialize youtube module
+	youtubeService := youtube.NewService()
+	youtubeHandler := youtube.NewHandler(youtubeService)
+
 	// Initialize handler
 	handler := handlers.NewHandler(userService, phraseService, groupService, tokenService, ankiService, exerciseService, aiService, cacheClient)
 
 	// Setup router
 	r := apphttp.NewRouter()
-	apphttp.RegisterRoutes(r, handler, authHandler, settingsHandler, aiMiddleware, sseHub, cacheClient, tokenService)
+	apphttp.RegisterRoutes(r, handler, authHandler, settingsHandler, youtubeHandler, aiMiddleware, sseHub, cacheClient, tokenService)
 
 	// Graceful shutdown
 	go func() {

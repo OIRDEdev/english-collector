@@ -8,6 +8,7 @@ import (
 	"extension-backend/internal/settings"
 	"extension-backend/internal/sse"
 	"extension-backend/internal/user"
+	"extension-backend/internal/youtube"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -25,7 +26,7 @@ func NewRouter() chi.Router {
 	return r
 }
 
-func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler, settingsHandler *settings.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub, cacheClient *cache.Client, tokenService *user.TokenService) {
+func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler, settingsHandler *settings.Handler, youtubeHandler *youtube.Handler, aiMiddleware *middleware.AIMiddleware, sseHub *sse.Hub, cacheClient *cache.Client, tokenService *user.TokenService) {
 	r.Get("/health", h.HealthCheck)
 
 	// SSE endpoint — protected by cookie auth (Hub extracts UserID from cookie)
@@ -132,6 +133,10 @@ func RegisterRoutes(r chi.Router, h *handlers.Handler, authHandler *auth.Handler
 				r.Get("/{id}", h.GetExercise)
 				r.Post("/{id}/view", h.MarkExerciseAsViewed)
 				r.Post("/chain/next-word", h.ChainNextWord)
+			})
+
+			r.Route("/youtube", func(r chi.Router) {
+				r.Get("/transcript/{id}", youtubeHandler.GetTranscript)
 			})
 		})
 	})

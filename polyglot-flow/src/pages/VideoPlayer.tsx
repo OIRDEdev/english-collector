@@ -3,6 +3,7 @@ import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { Menu, ArrowLeft, RefreshCw, Youtube, Play } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { youtubeService, TranscriptLine } from "@/services/youtubeService";
 
 // declare global YT types loosely
 declare global {
@@ -12,11 +13,8 @@ declare global {
   }
 }
 
-interface Caption {
-  start: number;
-  dur: number;
-  text: string;
-}
+// Use TranscriptLine from youtubeService
+type Caption = TranscriptLine;
 
 export default function VideoPlayer() {
   const { videoId } = useParams<{ videoId: string }>();
@@ -29,8 +27,9 @@ export default function VideoPlayer() {
   
   const [captions, setCaptions] = useState<Caption[]>([]);
   const [currentCaption, setCurrentCaption] = useState("");
-  const syncInterval = useRef<any>(null);
+  const reqAnimFrameRef = useRef<number | null>(null);
   const timeoutRef = useRef<any>(null);
+  const stopTimeRef = useRef<number>(10);
 
   useEffect(() => {
     // Load YouTube iframe API
@@ -71,7 +70,7 @@ export default function VideoPlayer() {
       if (playerRef.current?.destroy) {
         playerRef.current.destroy();
       }
-      if (syncInterval.current) clearInterval(syncInterval.current);
+      if (reqAnimFrameRef.current !== null) cancelAnimationFrame(reqAnimFrameRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [videoId]);
@@ -80,23 +79,31 @@ export default function VideoPlayer() {
     async function fetchCaptions() {
       if (!videoId) return;
       try {
-        const res = await fetch(`https://www.youtube.com/api/timedtext?v=${videoId}&lang=en`);
-        if (!res.ok) return;
-        const xml = await res.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xml, "text/xml");
+        const data = await youtubeService.getTranscript(videoId);
+        const caps = data.filter(c => c.start <= 10.5);
         
-        const caps = Array.from(doc.querySelectorAll("text"))
-          .map(n => ({
-            start: parseFloat(n.getAttribute("start") || "0"),
-            dur: parseFloat(n.getAttribute("dur") || "0"),
-            text: n.textContent || ""
-          }))
-          .filter(c => c.start <= 10.5);
+        let calculatedStopTime = 10;
+        if (caps.length > 0) {
+          const lastCaption = caps[caps.length - 1];
+          const nextCaption = data[caps.length];
+          const lastEnd = lastCaption.start + lastCaption.dur;
           
+          if (nextCaption) {
+            const gap = nextCaption.start - lastEnd;
+            if (gap > 4) {
+              calculatedStopTime = lastEnd + 2;
+            } else {
+              calculatedStopTime = nextCaption.start - 0.001;
+            }
+          } else {
+            calculatedStopTime = lastEnd + 2;
+          }
+        }
+        
         setCaptions(caps);
+        stopTimeRef.current = calculatedStopTime;
       } catch (err) {
-        console.error("Error fetching captions", err);
+        console.error("Error fetching captions from backend", err);
       }
     }
     fetchCaptions();
@@ -121,7 +128,7 @@ export default function VideoPlayer() {
 
   function play10Seconds() {
     setPlaybackState('initial');
-    if (syncInterval.current) clearInterval(syncInterval.current);
+    if (reqAnimFrameRef.current !== null) cancelAnimationFrame(reqAnimFrameRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setCurrentCaption("");
     
@@ -129,40 +136,58 @@ export default function VideoPlayer() {
       playerRef.current.seekTo(0);
       playerRef.current.playVideo();
 
-      timeoutRef.current = setTimeout(() => {
-        if (playerRef.current && playerRef.current.pauseVideo) {
-          playerRef.current.pauseVideo();
-          setPlaybackState('explanation');
+      const monitorTime = () => {
+        if (playerRef.current && playerRef.current.getCurrentTime) {
+          const time = playerRef.current.getCurrentTime();
+          if (time >= stopTimeRef.current) {
+            playerRef.current.pauseVideo();
+            setPlaybackState('explanation');
+            return;
+          }
         }
-      }, 10000);
+        reqAnimFrameRef.current = requestAnimationFrame(monitorTime);
+      };
+
+      timeoutRef.current = setTimeout(() => {
+        reqAnimFrameRef.current = requestAnimationFrame(monitorTime);
+      }, 200);
     }
   }
 
   function playWithSubtitles() {
     setPlaybackState('with_subs');
-    if (syncInterval.current) clearInterval(syncInterval.current);
+    if (reqAnimFrameRef.current !== null) cancelAnimationFrame(reqAnimFrameRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
     if (playerRef.current && playerRef.current.seekTo) {
       playerRef.current.seekTo(0);
       playerRef.current.playVideo();
 
-      syncInterval.current = setInterval(() => {
+      const syncCaptions = () => {
         if (playerRef.current && playerRef.current.getCurrentTime) {
           const time = playerRef.current.getCurrentTime();
-          const active = captions.find(c => time >= c.start && time <= c.start + c.dur);
+          
+          if (time >= stopTimeRef.current) {
+            playerRef.current.pauseVideo();
+            setCurrentCaption("");
+            setPlaybackState('explanation');
+            return;
+          }
+
+          const active = captions.find((c, i) => {
+            const next = captions[i + 1];
+            const end = next ? next.start : c.start + c.dur;
+            return time >= c.start && time < end;
+          });
           setCurrentCaption(active ? active.text : "");
         }
-      }, 100);
+        reqAnimFrameRef.current = requestAnimationFrame(syncCaptions);
+      };
 
+      // wait 200ms for player to start actually playing to prevent drift
       timeoutRef.current = setTimeout(() => {
-        if (playerRef.current && playerRef.current.pauseVideo) {
-          playerRef.current.pauseVideo();
-          if (syncInterval.current) clearInterval(syncInterval.current);
-          setCurrentCaption("");
-          setPlaybackState('explanation');
-        }
-      }, 10000);
+        reqAnimFrameRef.current = requestAnimationFrame(syncCaptions);
+      }, 200);
     }
   }
 
