@@ -79,13 +79,14 @@ export default function VideoPlayer() {
     async function fetchCaptions() {
       if (!videoId) return;
       try {
-        const data = await youtubeService.getTranscript(videoId);
-        const caps = data.filter(c => c.start <= 10.5);
+        // 2) Tentar buscar a legenda via backend (com JWT para fallback do idioma)
+        const transcriptData = await youtubeService.getCaptions(videoId);
+        const caps = transcriptData.filter(c => c.start <= 10.5);
         
         let calculatedStopTime = 10;
         if (caps.length > 0) {
           const lastCaption = caps[caps.length - 1];
-          const nextCaption = data[caps.length];
+          const nextCaption = transcriptData[caps.length];
           const lastEnd = lastCaption.start + lastCaption.dur;
           
           if (nextCaption) {

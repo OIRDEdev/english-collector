@@ -7,10 +7,12 @@ export interface TranscriptLine {
 }
 
 class YoutubeService {
-  async getTranscript(videoId: string): Promise<TranscriptLine[]> {
+  // Ex: en, pt, es... (opcional, o backend faz fallback para o User Profile via JWT)
+  async getCaptions(videoId: string, lang?: string): Promise<TranscriptLine[]> {
     try {
-      const response = await apiService.api.get<TranscriptLine[]>(`/youtube/transcript/${videoId}`);
-      console.log(response.data);
+      // Usar a instância de `api.ts` garante que os cookies de auth (JWT) viajem junto!
+      const endpoint = lang ? `/youtube/transcript/${videoId}?lang=${lang}` : `/youtube/transcript/${videoId}`;
+      const response = await apiService.api.get<TranscriptLine[]>(endpoint);
       console.log(response)
       return response.data;
     } catch (error) {

@@ -1,6 +1,7 @@
 package youtube_test
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -10,10 +11,11 @@ import (
 func TestYouTubeService_GetTranscript_Integration(t *testing.T) {
 	// Arrange
 	videoID := "XrZ2zF2b9zU"
-	svc := youtube.NewService()
+	svc := youtube.NewService(nil) // DBTX is unneeded for strict integration logic when lang="en" 
 
 	// Act
-	lines, err := svc.GetTranscript(videoID)
+	// Forçando en-US na query para pular verificação de banco pelo JWT
+	lines, err := svc.GetTranscript(context.Background(), videoID, "en-US")
 
 	// Assert
 	if err != nil {

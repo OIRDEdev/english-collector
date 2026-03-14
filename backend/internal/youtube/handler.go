@@ -23,8 +23,10 @@ func (h *Handler) GetTranscript(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing video ID", http.StatusBadRequest)
 		return
 	}
+	
+	lang := r.URL.Query().Get("lang")
 
-	transcript, err := h.service.GetTranscript(videoID)
+	transcript, err := h.service.GetTranscript(r.Context(), videoID, lang)
 	if err != nil {
 		http.Error(w, "failed to fetch transcript: "+err.Error(), http.StatusInternalServerError)
 		return
