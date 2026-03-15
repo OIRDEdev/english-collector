@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { exerciseService } from "@/services/exerciseService";
 import { cn } from "@/lib/utils";
 import type { TipoComCatalogo, CatalogoItem } from "@/types/api";
+import { toast } from "sonner";
 
 // ─── Icon/Gradient maps by catalogo nome (lowercase) ──────────
 
@@ -86,6 +87,11 @@ const Exercises = () => {
   const handleStartExercise = async (catalogo: CatalogoItem) => {
     try {
       const exercises = await exerciseService.getByCatalogo(catalogo.id, 3);
+      console.log(exercises);
+      if(exercises.length === 0){
+        toast.error("Nenhum exercício disponível no momento.");
+        return;
+      }
       if (exercises.length > 0) {
         navigate(`/exercises/${encodeURIComponent(catalogo.nome)}/${exercises[0].id}`, {
           state: { exercises, catalogName: catalogo.nome },

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"errors"
 	"extension-backend/internal/exercises"
 
 	"github.com/jackc/pgx/v5"
@@ -199,6 +200,7 @@ func (r *Repository) GetByCatalogoAndUserLanguages(ctx context.Context, catalogo
 	if err != nil {
 		return nil, err
 	}
+	
 	defer rows.Close()
 
 	var list []exercises.Exercicio
@@ -218,6 +220,9 @@ func (r *Repository) GetByCatalogoAndUserLanguages(ctx context.Context, catalogo
 		}
 
 		list = append(list, ex)
+	}
+	if len(list) == 0 {
+		return nil, errors.New("no exercises found")
 	}
 	return list, rows.Err()
 }

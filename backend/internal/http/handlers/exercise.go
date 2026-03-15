@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"extension-backend/internal/http/middleware"
+	"fmt"
 	"net/http"
 	"strconv"
-
-	"extension-backend/internal/http/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -70,7 +70,12 @@ func (h *Handler) GetExercisesByCatalogo(w http.ResponseWriter, r *http.Request)
 	userID := claims.UserID
 
 	exs, err := h.exerciseService.GetExerciciosByCatalogo(ctx, catalogoID, userID, limit)
-	if err != nil {
+	if err != nil{
+		fmt.Println(err.Error())
+		if err.Error() == "failed to get exercises for catalogo " + strconv.Itoa(catalogoID) + " and user " + strconv.Itoa(userID) + ": no exercises found"{
+			SendError(w, http.StatusNoContent, err.Error())
+			return
+		}
 		SendError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

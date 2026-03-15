@@ -17,7 +17,11 @@ export const exerciseService = {
   getByCatalogo: async (catalogoId: number, limit = 3): Promise<ExerciseItem[]> => {
     const response = await apiService.api.get<ApiResponse<ExerciseItem[]>>(
       `/exercises/catalogo/${catalogoId}?limit=${limit}`
-    );
+    );  
+    console.log(response);
+    if (response.status === 204) {
+      return [];
+    }
     return response.data.data;
   },
 
