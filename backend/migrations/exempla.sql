@@ -80,8 +80,20 @@ CREATE TABLE exercicios_catalogo (
     ativo boolean DEFAULT true,
     criado_em timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     proef_base integer DEFAULT 10,
-    proef_bonus integer DEFAULT 0
+    proef_bonus integer DEFAULT 0,
+    img text
 );
+
+CREATE TABLE videos (
+    id SERIAL PRIMARY KEY,
+    video_id VARCHAR(20) NOT NULL UNIQUE,
+    idioma VARCHAR(10) NOT NULL DEFAULT '',
+    transcricao JSONB NOT NULL,
+    criado_em TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_videos_video_id_idioma ON videos (video_id, idioma);
 
 
 CREATE TABLE exercicios_visualizados (

@@ -2,7 +2,9 @@ package youtube
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"log"
 	"strings"
 
 	"extension-backend/internal/http/middleware"
@@ -43,6 +45,47 @@ func NewService(db DBTX) Service {
 	}
 }
 
+// ─────────────────── Cache helpers ───────────────────
+
+func (s *service) getCachedTranscript(ctx context.Context, videoID, lang string) ([]TranscriptLine, bool) {
+	if s.db == nil {
+		return nil, false
+	}
+	query := `SELECT transcricao FROM videos WHERE video_id = $1 AND idioma = $2`
+	var raw []byte
+	err := s.db.QueryRow(ctx, query, videoID, lang).Scan(&raw)
+	if err != nil {
+		return nil, false
+	}
+	var lines []TranscriptLine
+	if err := json.Unmarshal(raw, &lines); err != nil {
+		return nil, false
+	}
+	return lines, true
+}
+
+func (s *service) saveCachedTranscript(ctx context.Context, videoID, lang string, lines []TranscriptLine) {
+	if s.db == nil {
+		return
+	}
+	data, err := json.Marshal(lines)
+	if err != nil {
+		log.Printf("[youtube-cache] falha ao serializar transcript: %v", err)
+		return
+	}
+	query := `
+		INSERT INTO videos (video_id, idioma, transcricao)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (video_id, idioma) DO UPDATE SET transcricao = $3, atualizado_em = CURRENT_TIMESTAMP
+	`
+	_, err = s.db.Exec(ctx, query, videoID, lang, data)
+	if err != nil {
+		log.Printf("[youtube-cache] falha ao salvar cache: %v", err)
+	}
+}
+
+// ─────────────────── Main Method ───────────────────
+
 func (s *service) GetTranscript(ctx context.Context, videoID string, queryLang string) ([]TranscriptLine, error) {
 	if videoID == "" {
 		return nil, errors.New("videoID is required")
@@ -68,7 +111,19 @@ func (s *service) GetTranscript(ctx context.Context, videoID string, queryLang s
 		}
 	}
 
-	// Request all available languages
+	// Resolve effective language key for cache (use targetLang or "default")
+	cacheKey := targetLang
+	if cacheKey == "" {
+		cacheKey = "default"
+	}
+
+	// 1) Check DB cache first
+	if cached, ok := s.getCachedTranscript(ctx, videoID, cacheKey); ok {
+		log.Printf("[youtube-cache] HIT video=%s lang=%s (%d linhas)", videoID, cacheKey, len(cached))
+		return cached, nil
+	}
+
+	// 2) Cache miss — fetch from YouTube API
 	transcripts, err := s.client.GetTranscripts(videoID, []string{})
 	if err != nil {
 		return nil, err
@@ -121,6 +176,10 @@ func (s *service) GetTranscript(ctx context.Context, videoID string, queryLang s
 			Text:  line.Text,
 		})
 	}
+
+	// 3) Save to DB cache for future requests
+	s.saveCachedTranscript(ctx, videoID, cacheKey, result)
+	log.Printf("[youtube-cache] MISS video=%s lang=%s → salvando %d linhas", videoID, cacheKey, len(result))
 
 	return result, nil
 }
