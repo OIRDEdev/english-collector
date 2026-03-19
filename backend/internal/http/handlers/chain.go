@@ -12,11 +12,6 @@ import (
 func (h *Handler) ChainNextWord(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	if h.aiService == nil {
-		SendError(w, http.StatusServiceUnavailable, "AI service not available")
-		return
-	}
-
 	var req ai.ChainRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		SendError(w, http.StatusBadRequest, "invalid request body")
@@ -25,6 +20,11 @@ func (h *Handler) ChainNextWord(w http.ResponseWriter, r *http.Request) {
 
 	if req.SentenceSoFar == "" {
 		SendError(w, http.StatusBadRequest, "sentence_so_far is required")
+		return
+	}
+
+	if h.aiService == nil {
+		SendError(w, http.StatusServiceUnavailable, "AI service not available")
 		return
 	}
 
