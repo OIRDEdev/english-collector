@@ -7,3 +7,9 @@ run-back:
 
 run-front:
 	cd polyglot-flow && npm run dev
+
+test:
+	cd backend && go test -json ./testes/... > ./testes/resultados/resultados.json
+
+test-v:
+	cd backend && go test -v ./testes/...
