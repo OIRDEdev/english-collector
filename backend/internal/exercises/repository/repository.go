@@ -62,7 +62,7 @@ func (r *Repository) ListTipos(ctx context.Context) ([]exercises.TipoExercicio, 
 // ListCatalogo retorna todos os itens do catálogo com o nome do tipo
 func (r *Repository) ListCatalogo(ctx context.Context) ([]exercises.CatalogoItem, error) {
 	query := `
-		SELECT c.id, c.nome, COALESCE(c.descricao, ''), c.tipo_id, t.nome, c.ativo
+		SELECT c.id, c.nome, COALESCE(c.descricao, ''), c.tipo_id, t.nome, c.ativo, c.img
 		FROM exercicios_catalogo c
 		JOIN tipos_exercicio t ON t.id = c.tipo_id
 		WHERE c.ativo = true
@@ -78,7 +78,7 @@ func (r *Repository) ListCatalogo(ctx context.Context) ([]exercises.CatalogoItem
 	var list []exercises.CatalogoItem
 	for rows.Next() {
 		var item exercises.CatalogoItem
-		if err := rows.Scan(&item.ID, &item.Nome, &item.Descricao, &item.TipoID, &item.TipoNome, &item.Ativo); err != nil {
+		if err := rows.Scan(&item.ID, &item.Nome, &item.Descricao, &item.TipoID, &item.TipoNome, &item.Ativo, &item.Img); err != nil {
 			return nil, err
 		}
 		list = append(list, item)

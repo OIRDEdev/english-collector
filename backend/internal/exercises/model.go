@@ -17,6 +17,7 @@ type ExercicioCatalogo struct {
 	TipoID    int       `json:"tipo_id"`
 	Descricao string    `json:"descricao,omitempty"`
 	Ativo     bool      `json:"ativo"`
+	Img       *string    `json:"img,omitempty"`
 	CriadoEm  time.Time `json:"criado_em"`
 }
 
@@ -40,6 +41,7 @@ type CatalogoItem struct {
 	TipoID      int    `json:"tipo_id"`
 	TipoNome    string `json:"tipo_nome"`
 	Ativo       bool   `json:"ativo"`
+	Img         *string `json:"img,omitempty"`
 }
 
 // TipoComCatalogo agrupa catálogos por tipo para exibição organizada
