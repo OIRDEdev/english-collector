@@ -105,9 +105,6 @@ func (s *Service) Register(ctx context.Context, input RegisterInput, ip, userAge
 
 func (s *Service) Login(ctx context.Context, input LoginInput, ip, userAgent string) (*AuthTokens, error) {
 	u, err := s.repo.GetByEmail(ctx, input.Email)
-	fmt.Println("input", input)
-	fmt.Println("input.Senha", input.Senha)
-	fmt.Println("u.SenhaHash", u.SenhaHash)
 	if err != nil {
 		return nil, fmt.Errorf("invalid credentials")
 	}

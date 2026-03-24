@@ -7,10 +7,9 @@ import (
 )
 
 func TestTranscript_Unauthorized(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
-	resp, body := testutil.UnauthGet(env.Server.URL, "/api/v1/youtube/transcript/dQw4w9WgXcQ")
+	resp, body := testutil.UnauthGet(env.BaseURL, "/api/v1/youtube/transcript/dQw4w9WgXcQ")
 
 	if resp.StatusCode != 401 {
 		t.Fatalf("Esperava 401 sem auth, recebeu %d: %s", resp.StatusCode, string(body))
@@ -18,10 +17,8 @@ func TestTranscript_Unauthorized(t *testing.T) {
 }
 
 func TestTranscript_MissingID(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
-	// Rota com ID vazio — o router do chi não vai matchear, então 405 ou 404
 	resp, _ := env.AuthGet("/api/v1/youtube/transcript/")
 
 	if resp.StatusCode == 200 {

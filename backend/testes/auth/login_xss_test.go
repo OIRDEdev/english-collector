@@ -8,8 +8,7 @@ import (
 )
 
 func TestLogin_XSS(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
 	xssPayloads := []string{
 		`<script>alert('xss')</script>`,
@@ -20,17 +19,15 @@ func TestLogin_XSS(t *testing.T) {
 
 	for _, xss := range xssPayloads {
 		t.Run("XSS_email_"+xss[:10], func(t *testing.T) {
-			resp, body := testutil.UnauthPost(env.Server.URL, "/api/v1/auth/login", map[string]string{
+			resp, body := testutil.UnauthPost(env.BaseURL, "/api/v1/auth/login", map[string]string{
 				"email": xss,
-				"senha": "test123",
+				"senha": env.TestSenha,
 			})
 
-			// Não deve devolver 200 (injeção não deve funcionar)
 			if resp.StatusCode == 200 {
 				t.Fatalf("Login com XSS payload não deveria retornar 200")
 			}
 
-			// O body NÃO deve refletir o script cru de volta
 			if strings.Contains(string(body), "<script>") {
 				t.Errorf("VULNERABILIDADE XSS: resposta refletiu <script> tag:\n%s", string(body))
 			}
@@ -40,8 +37,8 @@ func TestLogin_XSS(t *testing.T) {
 		})
 
 		t.Run("XSS_senha_"+xss[:10], func(t *testing.T) {
-			resp, body := testutil.UnauthPost(env.Server.URL, "/api/v1/auth/login", map[string]string{
-				"email": "test@test.com",
+			resp, body := testutil.UnauthPost(env.BaseURL, "/api/v1/auth/login", map[string]string{
+				"email": env.TestEmail,
 				"senha": xss,
 			})
 

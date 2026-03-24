@@ -7,8 +7,7 @@ import (
 )
 
 func TestRegister_BadInput(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
 	tests := []struct {
 		name    string
@@ -16,15 +15,14 @@ func TestRegister_BadInput(t *testing.T) {
 		expect  int
 	}{
 		{"JSON Inválido", "lixo", 400},
-		{"Sem Nome", map[string]string{"email": "a@b.com", "senha": "123"}, 201}, // mock aceita
-		{"Email Duplicado (já existe test@test.com)", map[string]string{
-			"nome": "Dup", "email": "test@test.com", "senha": "123",
+		{"Email Duplicado (já existe test_runner)", map[string]string{
+			"nome": "Dup", "email": env.TestEmail, "senha": "123",
 		}, 400},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, body := testutil.UnauthPost(env.Server.URL, "/api/v1/auth/register", tt.payload)
+			resp, body := testutil.UnauthPost(env.BaseURL, "/api/v1/auth/register", tt.payload)
 			if resp.StatusCode != tt.expect {
 				t.Errorf("Esperava %d, recebeu %d: %s", tt.expect, resp.StatusCode, string(body))
 			}

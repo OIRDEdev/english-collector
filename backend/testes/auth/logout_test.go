@@ -7,8 +7,7 @@ import (
 )
 
 func TestLogout_ClearsCookies(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
 	resp, body := env.AuthPost("/api/v1/auth/logout", nil)
 

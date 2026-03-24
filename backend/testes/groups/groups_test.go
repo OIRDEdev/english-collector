@@ -7,8 +7,7 @@ import (
 )
 
 func TestCreateGroup_Success(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
 	resp, body := env.AuthPost("/api/v1/groups", map[string]any{
 		"usuario_id": 1,
@@ -22,10 +21,9 @@ func TestCreateGroup_Success(t *testing.T) {
 }
 
 func TestCreateGroup_Unauthorized(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
-	resp, body := testutil.UnauthPost(env.Server.URL, "/api/v1/groups", map[string]any{
+	resp, body := testutil.UnauthPost(env.BaseURL, "/api/v1/groups", map[string]any{
 		"nome_grupo": "Hacker Group",
 	})
 

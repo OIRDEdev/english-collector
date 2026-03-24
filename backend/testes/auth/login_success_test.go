@@ -7,12 +7,11 @@ import (
 )
 
 func TestLogin_Success(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
-	resp, body := testutil.UnauthPost(env.Server.URL, "/api/v1/auth/login", map[string]string{
-		"email": "test@test.com",
-		"senha": "test123",
+	resp, body := testutil.UnauthPost(env.BaseURL, "/api/v1/auth/login", map[string]string{
+		"email": env.TestEmail,
+		"senha": env.TestSenha,
 	})
 
 	if resp.StatusCode != 200 {

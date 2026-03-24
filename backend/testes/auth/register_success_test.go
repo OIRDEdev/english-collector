@@ -1,18 +1,22 @@
 package auth_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"extension-backend/testes/testutil"
 )
 
 func TestRegister_Success(t *testing.T) {
-	env := testutil.StartTestServer()
-	defer env.Server.Close()
+	env := testutil.NewTestEnv()
 
-	resp, body := testutil.UnauthPost(env.Server.URL, "/api/v1/auth/register", map[string]string{
-		"nome":  "Novo Usuário",
-		"email": "novo@test.com",
+	uniqueEmail := fmt.Sprintf("register_test_%d@test.com", time.Now().UnixNano())
+
+	resp, body := testutil.UnauthPost(env.BaseURL, "/api/v1/auth/register", map[string]string{
+		"nome":  "Novo Usuário Teste",
+		"email": uniqueEmail,
 		"senha": "senhasegura123",
 	})
 
@@ -29,6 +33,14 @@ func TestRegister_Success(t *testing.T) {
 	}
 	if !foundCookie {
 		t.Fatal("Cookie access_token não encontrado após register")
+	}
+
+	// Cleanup — deletar user via API
+	var parsed map[string]interface{}
+	json.Unmarshal(body, &parsed)
+	if id, ok := parsed["id"]; ok {
+		userID := fmt.Sprintf("%.0f", id.(float64))
+		env.AuthDelete("/api/v1/users/" + userID)
 	}
 
 	t.Logf("Register OK — body: %s", string(body))
