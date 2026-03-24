@@ -23,6 +23,8 @@ import (
 	"extension-backend/internal/http/handlers"
 	apphttp "extension-backend/internal/http"
 	"extension-backend/internal/phrase"
+	phraseRepo "extension-backend/internal/phrase/repository"
+	phraseSvc "extension-backend/internal/phrase/service"
 	"extension-backend/internal/settings"
 	"extension-backend/internal/user"
 	"extension-backend/internal/youtube"
@@ -450,6 +452,61 @@ func StartTestServerWithRealExercises() *TestEnv {
 		tokenService,
 		&MockAnkiService{},
 		realExerciseSvc,
+		nil, // ai service
+		nil, // cache client
+	)
+
+	r := apphttp.NewRouter()
+	apphttp.RegisterRoutes(r, handler, authHandler, settingsHandler, ytHandler, nil, nil, nil, tokenService)
+
+	ts := httptest.NewServer(r)
+
+	return &TestEnv{
+		Server:       ts,
+		TokenService: tokenService,
+		UserService:  mockUserSvc,
+		CloseDB:      pool.Close,
+		RealDB:       pool,
+	}
+}
+
+// StartTestServerWithRealPhrases boots a test server where the phrase
+// service uses the REAL database (Neon PostgreSQL), while all other services
+// remain mocked. This allows true integration testing of phrase queries.
+func StartTestServerWithRealPhrases() *TestEnv {
+	pool := connectRealDB()
+
+	tokenService := user.NewTokenService()
+	mockUserSvc := NewMockUserService()
+
+	// Seed a test user
+	mockUserSvc.Users["test@test.com"] = &user.User{
+		ID:        1,
+		Nome:      "Edrio",
+		Email:     "test@test.com",
+		SenhaHash: "",
+		CriadoEm:  time.Now(),
+	}
+
+	// Auth (mock)
+	authSvc := auth.NewService(mockUserSvc)
+	authHandler := auth.NewHandler(authSvc, mockUserSvc)
+
+	// Settings / YouTube (mock)
+	settingsHandler := settings.NewHandler(settings.NewService(nil))
+	ytHandler := youtube.NewHandler(youtube.NewService(nil))
+
+	// Phrase — REAL repo + service backed by real DB
+	realPhraseRepo := phraseRepo.New(pool)
+	realPhraseSvc := phraseSvc.New(realPhraseRepo)
+
+	handler := handlers.NewHandler(
+		mockUserSvc,
+		realPhraseSvc,
+		&MockGroupService{},
+		tokenService,
+		&MockAnkiService{},
+		&MockExerciseService{},
 		nil, // ai service
 		nil, // cache client
 	)
