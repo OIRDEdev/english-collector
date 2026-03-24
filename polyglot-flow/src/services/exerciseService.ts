@@ -18,7 +18,6 @@ export const exerciseService = {
     const response = await apiService.api.get<ApiResponse<ExerciseItem[]>>(
       `/exercises/catalogo/${catalogoId}?limit=${limit}`
     );  
-    console.log(response);
     if (response.status === 204) {
       return [];
     }

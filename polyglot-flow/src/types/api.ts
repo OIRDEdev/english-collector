@@ -127,6 +127,7 @@ export interface CatalogoItem {
   tipo_id: number;
   tipo_nome: string;
   ativo: boolean;
+  img?: string;
 }
 
 export interface TipoComCatalogo {
@@ -141,4 +142,6 @@ export interface ExerciseItem {
   dados_exercicio: Record<string, any>;
   nivel: number;
   criado_em: string;
+  success?: boolean;
+  error?: string;
 }

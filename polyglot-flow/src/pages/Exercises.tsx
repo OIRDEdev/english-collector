@@ -1,27 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { Menu, Dumbbell, Loader2, Brain, Zap, BookOpen, Keyboard, Bug, Search, Mic, Sparkles, ArrowRight, Link2 } from "lucide-react";
+import { Menu, Dumbbell, Loader2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { exerciseService } from "@/services/exerciseService";
 import { cn } from "@/lib/utils";
 import type { TipoComCatalogo, CatalogoItem } from "@/types/api";
 import { toast } from "sonner";
+import { CardAnimation, getCardAnimation } from "@/components/exercises/componets/CardAnimationMap";
 
-// ─── Icon/Gradient maps by catalogo nome (lowercase) ──────────
-
-const CATALOG_ICONS: Record<string, any> = {
-  "clarity master": Zap,
-  "echo write": Keyboard,
-  "nexus connect": Brain,
-  "logic breaker": Bug,
-  "key burst": Search,
-  "leitura imersa": BookOpen,
-  "voice improvement": Mic,
-  "chainofsentence": Link2,
-  "wordmemory": Brain,
-  "connection": Sparkles,
-};
+// ─── Gradient / Tag maps by catalogo nome (lowercase) ──────────
 
 const CATALOG_GRADIENTS: Record<string, string> = {
   "clarity master": "from-amber-500/20 to-orange-600/20 hover:from-amber-500/30 hover:to-orange-600/30 border-amber-500/30",
@@ -41,10 +29,6 @@ const TAG_COLORS: Record<string, string> = {
   "lógica": "bg-rose-500/15 text-rose-400 border-rose-500/20",
   "linguagem": "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
   "vocabulário": "bg-amber-500/15 text-amber-400 border-amber-500/20",
-};
-
-const getIcon = (name: string, fallback = Brain) => {
-  return CATALOG_ICONS[name.toLowerCase()] || fallback;
 };
 
 const getGradient = (name: string) => {
@@ -87,7 +71,6 @@ const Exercises = () => {
   const handleStartExercise = async (catalogo: CatalogoItem) => {
     try {
       const exercises = await exerciseService.getByCatalogo(catalogo.id, 3);
-      console.log(exercises);
       if(exercises.length === 0){
         toast.error("Nenhum exercício disponível no momento.");
         return;
@@ -152,71 +135,61 @@ const Exercises = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 max-w-7xl mx-auto">
                 {allCatalogos.map((cat) => {
-                  const Icon = getIcon(cat.nome);
                   const gradient = getGradient(cat.nome);
                   const tagColor = getTagColor(cat.tipo_nome);
+                  const hasAnimation = !!getCardAnimation(cat.nome);
 
                   return (
                     <div
                       key={cat.id}
                       className={cn(
-                        "group/card relative rounded-2xl border bg-gradient-to-br transition-all duration-300",
+                        "group/card relative rounded-2xl border transition-all duration-300",
                         "hover:scale-[1.03] hover:shadow-2xl cursor-pointer overflow-hidden",
-                        gradient
+                        `bg-gradient-to-br ${gradient}`
                       )}
+                      style={{ minHeight: "280px" }}
                       onClick={() => handleStartExercise(cat)}
                     >
-                      {/* Icon area */}
-                      <div className="relative h-32 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
-                        <Icon className="w-11 h-11 text-foreground/50 transition-transform duration-500 group-hover/card:scale-110 group-hover/card:rotate-3 relative z-10" />
+                      {/* Animated background */}
+                      {hasAnimation && <CardAnimation catalogName={cat.nome} />}
+
+                      {/* Title always visible at bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 z-10 p-5 transition-opacity duration-300 group-hover/card:opacity-0">
+                        <h3 className="font-bold text-lg leading-tight drop-shadow-lg text-foreground">
+                          {cat.nome}
+                        </h3>
                       </div>
 
-                      {/* Content */}
-                      <div className="p-5 pt-3 space-y-3 border-t border-white/5">
+                      {/* Hover overlay — transparent info floating */}
+                      <div className={cn(
+                        "absolute inset-0 z-20 flex flex-col justify-end p-5 transition-all duration-300",
+                        "opacity-0 group-hover/card:opacity-100",
+                        "bg-background/40 backdrop-blur-[6px]"
+                      )}>
                         {/* Tag */}
                         <span className={cn(
-                          "inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                          "inline-block self-start px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border mb-2",
                           tagColor
                         )}>
                           {cat.tipo_nome}
                         </span>
 
                         {/* Title */}
-                        <h3 className="font-bold text-base text-foreground group-hover/card:text-primary transition-colors leading-tight">
+                        <h3 className="font-bold text-lg leading-tight mb-1 drop-shadow-md text-foreground">
                           {cat.nome}
                         </h3>
 
-                        {/* Description - truncated */}
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[2.5rem]">
+                        {/* Description */}
+                        <p className="text-xs leading-relaxed mb-3 line-clamp-3 text-muted-foreground">
                           {cat.descricao || "Exercício prático."}
                         </p>
 
                         {/* CTA */}
-                        <div className="pt-1">
-                          <button className="w-full py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-foreground text-sm font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                            Iniciar
-                            <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover/card:opacity-100 group-hover/card:translate-x-0 transition-all" />
-                          </button>
-                        </div>
+                        <button className="w-full py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 border bg-white/[0.06] border-white/10 text-foreground hover:bg-white/10">
+                          Iniciar
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-
-                      {/* Hover overlay — full description */}
-                      {cat.descricao && cat.descricao.length > 60 && (
-                        <div className="absolute inset-0 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none">
-                          <Icon className="w-8 h-8 text-primary/60 mb-3" />
-                          <h4 className="font-bold text-foreground mb-2">{cat.nome}</h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {cat.descricao}
-                          </p>
-                          <span className={cn(
-                            "mt-3 inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                            tagColor
-                          )}>
-                            {cat.tipo_nome}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
