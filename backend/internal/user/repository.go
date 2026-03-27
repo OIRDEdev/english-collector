@@ -34,13 +34,21 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 
 func (r *Repository) GetByID(ctx context.Context, id int) (*User, error) {
 	query := `
-		SELECT id, nome, email, senha_hash, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em
-		FROM usuarios WHERE id = $1
+		SELECT u.id, u.nome, u.email, u.senha_hash, u.token_extensao, 
+		       u.idioma_origem_id, io.codigo as idioma_origem_codigo,
+		       u.idioma_aprendizado_id, ia.codigo as idioma_aprendizado_codigo, 
+		       u.criado_em
+		FROM usuarios u
+		LEFT JOIN idiomas io ON u.idioma_origem_id = io.id
+		LEFT JOIN idiomas ia ON u.idioma_aprendizado_id = ia.id
+		WHERE u.id = $1
 	`
 	var u User
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao,
-		&u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm,
+		&u.IdiomaOrigemID, &u.IdiomaOrigemCodigo,
+		&u.IdiomaAprendizadoID, &u.IdiomaAprendizadoCodigo,
+		&u.CriadoEm,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -50,13 +58,21 @@ func (r *Repository) GetByID(ctx context.Context, id int) (*User, error) {
 
 func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-		SELECT id, nome, email, senha_hash, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em
-		FROM usuarios WHERE email = $1
+		SELECT u.id, u.nome, u.email, u.senha_hash, u.token_extensao, 
+		       u.idioma_origem_id, io.codigo as idioma_origem_codigo,
+		       u.idioma_aprendizado_id, ia.codigo as idioma_aprendizado_codigo, 
+		       u.criado_em
+		FROM usuarios u
+		LEFT JOIN idiomas io ON u.idioma_origem_id = io.id
+		LEFT JOIN idiomas ia ON u.idioma_aprendizado_id = ia.id
+		WHERE u.email = $1
 	`
 	var u User
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao,
-		&u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm,
+		&u.IdiomaOrigemID, &u.IdiomaOrigemCodigo,
+		&u.IdiomaAprendizadoID, &u.IdiomaAprendizadoCodigo,
+		&u.CriadoEm,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -66,13 +82,21 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 
 func (r *Repository) GetByExtensionToken(ctx context.Context, token string) (*User, error) {
 	query := `
-		SELECT id, nome, email, senha_hash, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em
-		FROM usuarios WHERE token_extensao = $1
+		SELECT u.id, u.nome, u.email, u.senha_hash, u.token_extensao, 
+		       u.idioma_origem_id, io.codigo as idioma_origem_codigo,
+		       u.idioma_aprendizado_id, ia.codigo as idioma_aprendizado_codigo, 
+		       u.criado_em
+		FROM usuarios u
+		LEFT JOIN idiomas io ON u.idioma_origem_id = io.id
+		LEFT JOIN idiomas ia ON u.idioma_aprendizado_id = ia.id
+		WHERE u.token_extensao = $1
 	`
 	var u User
 	err := r.db.QueryRow(ctx, query, token).Scan(
 		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &u.TokenExtensao,
-		&u.IdiomaOrigemID, &u.IdiomaAprendizadoID, &u.CriadoEm,
+		&u.IdiomaOrigemID, &u.IdiomaOrigemCodigo,
+		&u.IdiomaAprendizadoID, &u.IdiomaAprendizadoCodigo,
+		&u.CriadoEm,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)

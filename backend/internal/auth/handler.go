@@ -101,10 +101,16 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(UserResponse{
-		ID:    u.ID,
-		Nome:  u.Nome,
-		Email: u.Email,
+	json.NewEncoder(w).Encode(struct {
+		UserResponse
+		ExtensionToken string `json:"extension_token,omitempty"`
+	}{
+		UserResponse: UserResponse{
+			ID:    u.ID,
+			Nome:  u.Nome,
+			Email: u.Email,
+		},
+		ExtensionToken: tokens.ExtensionToken,
 	})
 }
 
@@ -134,10 +140,16 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(UserResponse{
-		ID:    u.ID,
-		Nome:  u.Nome,
-		Email: u.Email,
+	json.NewEncoder(w).Encode(struct {
+		UserResponse
+		ExtensionToken string `json:"extension_token,omitempty"`
+	}{
+		UserResponse: UserResponse{
+			ID:    u.ID,
+			Nome:  u.Nome,
+			Email: u.Email,
+		},
+		ExtensionToken: tokens.ExtensionToken,
 	})
 }
 
@@ -159,7 +171,10 @@ func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	h.setCookies(w, tokens)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Google login successful"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":         "Google login successful",
+		"extension_token": tokens.ExtensionToken,
+	})
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -186,7 +201,10 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	h.setCookies(w, tokens)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Token refreshed"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":         "Token refreshed",
+		"extension_token": tokens.ExtensionToken,
+	})
 }
 
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {

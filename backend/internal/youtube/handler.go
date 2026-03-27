@@ -2,6 +2,8 @@ package youtube
 
 import (
 	"encoding/json"
+	"extension-backend/internal/http/middleware"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -25,8 +27,30 @@ func (h *Handler) GetTranscript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Default to query parameters
 	lang := r.URL.Query().Get("lang")
 	native := r.URL.Query().Get("native")
+
+	// Override with JWT claims if available (e.g. from extension)
+	if claims := middleware.GetUserFromContext(r.Context()); claims != nil {
+		fmt.Println("claims", claims) 
+		if claims.LearningLang != "" {
+			lang = claims.LearningLang
+		}
+		if claims.NativeLang != "" {
+			native = claims.NativeLang
+		}
+	}
+	fmt.Println("lang", lang)
+	fmt.Println("native", native)
+	// Default values if still empty
+	if lang == "" {
+		lang = "en"
+	}
+	if native == "" {
+		native = "pt"
+	}
+
 	startStr := r.URL.Query().Get("start")
 	endStr := r.URL.Query().Get("end")
 

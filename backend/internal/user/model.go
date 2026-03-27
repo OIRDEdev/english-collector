@@ -9,7 +9,9 @@ type User struct {
 	SenhaHash           string    `json:"-"`
 	TokenExtensao       string    `json:"token_extensao,omitempty"`
 	IdiomaOrigemID      *int      `json:"idioma_origem_id,omitempty"`
+	IdiomaOrigemCodigo  string    `json:"idioma_origem_codigo,omitempty"`
 	IdiomaAprendizadoID *int      `json:"idioma_aprendizado_id,omitempty"`
+	IdiomaAprendizadoCodigo string `json:"idioma_aprendizado_codigo,omitempty"`
 	CriadoEm            time.Time `json:"criado_em"`
 }
 
@@ -55,7 +57,8 @@ type RegisterInput struct {
 }
 
 type AuthTokens struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
+	AccessToken    string `json:"access_token"`
+	RefreshToken   string `json:"refresh_token"`
+	ExtensionToken string `json:"extension_token,omitempty"`
+	ExpiresIn      int64  `json:"expires_in"`
 }

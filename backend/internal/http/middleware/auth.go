@@ -20,19 +20,19 @@ func Auth(tokenService *user.TokenService) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var tokenString string
 
-			// 1. Try cookie first
-			if cookie, err := r.Cookie("access_token"); err == nil && cookie.Value != "" {
-				tokenString = cookie.Value
+			// 1. Try Authorization header first (preferred for API/Extension)
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					tokenString = parts[1]
+				}
 			}
 
-			// 2. Fallback to Authorization header
+			// 2. Fallback to cookie
 			if tokenString == "" {
-				authHeader := r.Header.Get("Authorization")
-				if authHeader != "" {
-					parts := strings.Split(authHeader, " ")
-					if len(parts) == 2 && parts[0] == "Bearer" {
-						tokenString = parts[1]
-					}
+				if cookie, err := r.Cookie("access_token"); err == nil && cookie.Value != "" {
+					tokenString = cookie.Value
 				}
 			}
 

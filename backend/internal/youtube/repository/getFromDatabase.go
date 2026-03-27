@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"extension-backend/internal/youtube/domain"
 	"fmt"
+	"log"
 )
 
 func (r *youtubeRepository) GetFromDatabase(ctx context.Context, videoID, lang, time string) ([]domain.TranslationSegment, error) {
@@ -12,13 +13,15 @@ func (r *youtubeRepository) GetFromDatabase(ctx context.Context, videoID, lang, 
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	fmt.Println("videoID", videoID)
-	fmt.Println("lang", lang)
-	fmt.Println("time", time)
+	if lang == "" || lang == ":" {
+		return nil, fmt.Errorf("invalid language specification: %s", lang)
+	}
+
+	log.Printf("[repository] GetFromDatabase: videoID=%s, lang=%s, time=%s", videoID, lang, time)
 	var raw []byte
 	query := `SELECT transcricao FROM videos WHERE video_id = $1 AND idioma = $2 AND "Time" = $3`
 	
-	err := r.db.QueryRow(ctx, query, videoID, "en:pt", time).Scan(&raw)
+	err := r.db.QueryRow(ctx, query, videoID, lang, time).Scan(&raw)
 	if err != nil {
 		return nil, err
 	}

@@ -62,11 +62,18 @@ func TestRepository_GetByID_Success(t *testing.T) {
 	langID1 := 1
 	langID2 := 2
 
-	mock.ExpectQuery("SELECT id, nome, email, senha_hash, token_extensao, idioma_origem_id, idioma_aprendizado_id, criado_em FROM usuarios WHERE id = \\$1").
+	mock.ExpectQuery(`SELECT u.id, u.nome, u.email, u.senha_hash, u.token_extensao, 
+		       u.idioma_origem_id, io.codigo as idioma_origem_codigo,
+		       u.idioma_aprendizado_id, ia.codigo as idioma_aprendizado_codigo, 
+		       u.criado_em
+		FROM usuarios u
+		LEFT JOIN idiomas io ON u.idioma_origem_id = io.id
+		LEFT JOIN idiomas ia ON u.idioma_aprendizado_id = ia.id
+		WHERE u.id = \$1`).
 		WithArgs(1).
 		WillReturnRows(pgxmock.NewRows([]string{
-			"id", "nome", "email", "senha_hash", "token_extensao", "idioma_origem_id", "idioma_aprendizado_id", "criado_em",
-		}).AddRow(1, "Test", "test@test.com", "hash", "token", &langID1, &langID2, now))
+			"id", "nome", "email", "senha_hash", "token_extensao", "idioma_origem_id", "idioma_origem_codigo", "idioma_aprendizado_id", "idioma_aprendizado_codigo", "criado_em",
+		}).AddRow(1, "Test", "test@test.com", "hash", "token", &langID1, "pt", &langID2, "en", now))
 
 	u, err := repo.GetByID(context.Background(), 1)
 
@@ -104,11 +111,11 @@ func TestRepository_GetByEmail_Success(t *testing.T) {
 
 	now := time.Now()
 
-	mock.ExpectQuery("SELECT (.+) FROM usuarios WHERE email = \\$1").
+	mock.ExpectQuery("SELECT (.+) FROM usuarios u").
 		WithArgs("test@test.com").
 		WillReturnRows(pgxmock.NewRows([]string{
-			"id", "nome", "email", "senha_hash", "token_extensao", "idioma_origem_id", "idioma_aprendizado_id", "criado_em",
-		}).AddRow(1, "Test", "test@test.com", "hash", "token", nil, nil, now))
+			"id", "nome", "email", "senha_hash", "token_extensao", "idioma_origem_id", "idioma_origem_codigo", "idioma_aprendizado_id", "idioma_aprendizado_codigo", "criado_em",
+		}).AddRow(1, "Test", "test@test.com", "hash", "token", nil, "", nil, "", now))
 
 	u, err := repo.GetByEmail(context.Background(), "test@test.com")
 

@@ -143,15 +143,21 @@ func (s *Service) generateTokens(ctx context.Context, u *User, ip, userAgent str
 		return nil, err
 	}
 
+	extensionToken, err := s.tokenService.GenerateExtensionToken(u)
+	if err != nil {
+		return nil, err
+	}
+
 	refreshToken := shared.GenerateToken(64)
 	if err := s.tokenRepo.Create(ctx, u.ID, refreshToken, ip, userAgent); err != nil {
 		return nil, err
 	}
 
 	return &AuthTokens{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    3600,
+		AccessToken:    accessToken,
+		RefreshToken:   refreshToken,
+		ExtensionToken: extensionToken,
+		ExpiresIn:      3600,
 	}, nil
 }
 

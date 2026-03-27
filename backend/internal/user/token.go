@@ -13,8 +13,10 @@ type TokenService struct {
 }
 
 type TokenClaims struct {
-	UserID int    `json:"user_id"`
-	Email  string `json:"email"`
+	UserID       int    `json:"user_id"`
+	Email        string `json:"email"`
+	NativeLang   string `json:"native_lang,omitempty"`
+	LearningLang string `json:"learning_lang,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -32,6 +34,23 @@ func (s *TokenService) GenerateAccessToken(u *User) (string, error) {
 		Email:  u.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(s.secretKey)
+}
+
+func (s *TokenService) GenerateExtensionToken(u *User) (string, error) {
+	claims := TokenClaims{
+		UserID:       u.ID,
+		Email:        u.Email,
+		NativeLang:   u.IdiomaOrigemCodigo,
+		LearningLang: u.IdiomaAprendizadoCodigo,
+		RegisteredClaims: jwt.RegisteredClaims{
+			// Extension tokens can last longer, e.g., 7 days
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
