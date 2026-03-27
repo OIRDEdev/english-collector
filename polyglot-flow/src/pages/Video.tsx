@@ -4,11 +4,79 @@ import { Menu, Video as VideoIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { VideoGrid, VideoData } from "@/components/video/VideoGrid";
 
-const mockVideos: VideoData[] = Array.from({ length: 10 }).map((_, i) => ({
-  id: `video-${i}`,
+const mockVideos: VideoData[] = [
+{
+  id: `video-1`,
   videoId: "IU_dMJ-3fk8",
   title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
-}));
+  timeStart: 0,
+  timeEnd: 10,
+},
+{
+  id: `video-2`,
+  videoId: "r0Lzz3pIAXU",
+  title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
+  timeStart: 134,
+  timeEnd: 145,
+},
+{
+  id: `video-3`,
+  videoId: "r0Lzz3pIAXU",
+  title: "Aprenda as Cores em Inglês ✨ - Parte 2",
+  timeStart: 30,
+  timeEnd: 40,
+},
+{
+  id: `video-4`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
+  timeStart: 0,
+  timeEnd: 10,
+},
+{
+  id: `video-5`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Parte 3",
+  timeStart: 60,
+  timeEnd: 70,
+},
+{
+  id: `video-6`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
+  timeStart: 0,
+  timeEnd: 10,
+},
+{
+  id: `video-7`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Parte 4",
+  timeStart: 90,
+  timeEnd: 100,
+},
+{
+  id: `video-8`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
+  timeStart: 120,
+  timeEnd: 130,
+},
+{
+  id: `video-9`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
+  timeStart: 150,
+  timeEnd: 160,
+},
+{
+  id: `video-10`,
+  videoId: "IU_dMJ-3fk8",
+  title: "Aprenda as Cores em Inglês ✨ - Músicas e Canções para Crianças e Bebês",
+  timeStart: 180,
+  timeEnd: 190,
+},
+
+]
 
 const Video = () => {
   const navigate = useNavigate();

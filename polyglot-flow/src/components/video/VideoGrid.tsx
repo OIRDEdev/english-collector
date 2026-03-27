@@ -4,6 +4,8 @@ export interface VideoData {
   id: string;
   videoId: string;
   title: string;
+  timeStart?: number;
+  timeEnd?: number;
 }
 
 interface VideoGridProps {
@@ -17,7 +19,9 @@ export function VideoGrid({ videos }: VideoGridProps) {
         <VideoCard 
           key={video.id} 
           videoId={video.videoId} 
-          title={video.title} 
+          title={video.title}
+          timeStart={video.timeStart}
+          timeEnd={video.timeEnd}
         />
       ))}
     </div>

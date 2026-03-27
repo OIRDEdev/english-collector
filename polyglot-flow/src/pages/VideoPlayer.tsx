@@ -1,11 +1,12 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { Menu, ArrowLeft, RefreshCw, Youtube, Play } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Youtube, Play } from "lucide-react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { youtubeService, TranscriptLine } from "@/services/youtubeService";
+import { youtubeService, TranslationSegment } from "@/services/youtubeService";
+import { TranscriptPanel } from "@/components/video/TranscriptPanel";
+import { MobileBottomBar } from "@/components/video/MobileBottomBar";
 
-// declare global YT types loosely
 declare global {
   interface Window {
     YT: any;
@@ -13,26 +14,28 @@ declare global {
   }
 }
 
-// Use TranscriptLine from youtubeService
-type Caption = TranscriptLine;
+// type Caption = TranslationSegment; // Removed old type alias
 
 export default function VideoPlayer() {
   const { videoId } = useParams<{ videoId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const playerRef = useRef<any>(null);
+
+  const timeStart = searchParams.get('t') ? Number(searchParams.get('t')) : 0;
+  const timeEnd = searchParams.get('end') ? Number(searchParams.get('end')) : undefined;
   
   const [playbackState, setPlaybackState] = useState<'initial' | 'explanation' | 'with_subs'>('initial');
   const [videoTitle, setVideoTitle] = useState("");
   const [channelName, setChannelName] = useState("");
   
-  const [captions, setCaptions] = useState<Caption[]>([]);
+  const [captions, setCaptions] = useState<TranslationSegment[]>([]);
   const [currentCaption, setCurrentCaption] = useState("");
   const reqAnimFrameRef = useRef<number | null>(null);
   const timeoutRef = useRef<any>(null);
   const stopTimeRef = useRef<number>(10);
 
   useEffect(() => {
-    // Load YouTube iframe API
     if (!window.YT) {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
@@ -45,6 +48,7 @@ export default function VideoPlayer() {
     }
 
     function initializePlayer() {
+      stopTimeRef.current = (timeEnd - timeStart);
       playerRef.current = new window.YT.Player("youtube-player", {
         height: "100%",
         width: "100%",
@@ -66,7 +70,6 @@ export default function VideoPlayer() {
     }
 
     return () => {
-      // Cleanup player on unmount
       if (playerRef.current?.destroy) {
         playerRef.current.destroy();
       }
@@ -76,47 +79,42 @@ export default function VideoPlayer() {
   }, [videoId]);
 
   useEffect(() => {
+    let isCancelled = false;
     async function fetchCaptions() {
       if (!videoId) return;
+
+      const rangeStart = timeStart;
+      const rangeEnd = timeEnd ?? (timeStart + 10);
+      stopTimeRef.current = rangeEnd + 1;
+
+      setCaptions([]);
+
       try {
-        // 2) Tentar buscar a legenda via backend (com JWT para fallback do idioma)
-        const transcriptData = await youtubeService.getCaptions(videoId);
-        const caps = transcriptData.filter(c => c.start <= 10.5);
-        
-        let calculatedStopTime = 10;
-        if (caps.length > 0) {
-          const lastCaption = caps[caps.length - 1];
-          const nextCaption = transcriptData[caps.length];
-          const lastEnd = lastCaption.start + lastCaption.dur;
-          
-          if (nextCaption) {
-            const gap = nextCaption.start - lastEnd;
-            if (gap > 4) {
-              calculatedStopTime = lastEnd + 2;
-            } else {
-              calculatedStopTime = nextCaption.start - 0.001;
-            }
-          } else {
-            calculatedStopTime = lastEnd + 2;
-          }
+        const transcriptData = await youtubeService.getCaptions(videoId, undefined, rangeStart, rangeEnd);
+        if (!transcriptData || transcriptData.length === 0) return;
+
+        const tolerance = 0.5;
+        const caps = transcriptData.filter(
+          c => c.start >= rangeStart && c.start <= rangeEnd + tolerance
+        );
+
+        if (!isCancelled) {
+          setCaptions(caps);
         }
-        
-        setCaptions(caps);
-        stopTimeRef.current = calculatedStopTime;
       } catch (err) {
-        console.error("Error fetching captions from backend", err);
+        if (!isCancelled) console.error("Error fetching captions:", err);
       }
     }
+
     fetchCaptions();
-  }, [videoId]);
+    return () => { isCancelled = true; };
+  }, [videoId, timeStart, timeEnd]);
 
   function onPlayerReady(event: any) {
-    console.log("Player pronto");
-    // get metadata if available via yt api
     const data = event.target.getVideoData();
     if (data) {
-      setVideoTitle(data.title || "Vídeo");
-      setChannelName(data.author || "Canal");
+      setVideoTitle(data.title || "Linguistic Depth");
+      setChannelName(data.author || "");
     }
     play10Seconds();
   }
@@ -134,7 +132,7 @@ export default function VideoPlayer() {
     setCurrentCaption("");
     
     if (playerRef.current && playerRef.current.seekTo) {
-      playerRef.current.seekTo(0);
+      playerRef.current.seekTo(timeStart);
       playerRef.current.playVideo();
 
       const monitorTime = () => {
@@ -161,7 +159,7 @@ export default function VideoPlayer() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
     if (playerRef.current && playerRef.current.seekTo) {
-      playerRef.current.seekTo(0);
+      playerRef.current.seekTo(timeStart);
       playerRef.current.playVideo();
 
       const syncCaptions = () => {
@@ -180,127 +178,114 @@ export default function VideoPlayer() {
             const end = next ? next.start : c.start + c.dur;
             return time >= c.start && time < end;
           });
-          setCurrentCaption(active ? active.text : "");
+          setCurrentCaption(active ? active.text_en : "");
         }
         reqAnimFrameRef.current = requestAnimationFrame(syncCaptions);
       };
 
-      // wait 200ms for player to start actually playing to prevent drift
       timeoutRef.current = setTimeout(() => {
         reqAnimFrameRef.current = requestAnimationFrame(syncCaptions);
       }, 200);
     }
   }
 
+  const handleLogoClick = () => navigate('/dashboard');
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-zinc-50 dark:bg-zinc-950">
-        <DashboardSidebar
-          grupos={[]}
-          activeGroup={null}
-          onGroupSelect={() => navigate("/dashboard")}
-          totalPhrases={0}
-        />
+      <div className="min-h-screen flex w-full bg-black font-sans text-zinc-100">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block shrink-0 bg-zinc-950 border-r border-zinc-900">
+          <DashboardSidebar
+            grupos={[]}
+            activeGroup={null}
+            onGroupSelect={handleLogoClick}
+            totalPhrases={0}
+          />
+        </div>
 
-        <main className="flex-1 flex flex-col animate-in fade-in duration-500">
-          {/* Header */}
-          <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-6 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-10 justify-between">
-            <div className="flex items-center">
-              <SidebarTrigger className="mr-4 md:hidden">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
-              <button 
-                onClick={() => navigate("/video")}
-                className="flex items-center text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                title="Voltar"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Voltar
-              </button>
-            </div>
-            {/* Custom info text requested by user */}
-            <div className="hidden sm:flex items-center gap-2 text-sm font-medium px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm text-zinc-700 dark:text-zinc-300">
-                Créditos:{" "}
-                <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                  {videoTitle}
-                </a>{" "}
-                por {channelName}
-            </div>
-          </header>
-
-          {/* Content */}
-          <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 overflow-hidden bg-zinc-900/5 dark:bg-black/20 w-full relative">
-            <div className="w-full max-w-5xl aspect-video relative bg-black shadow-2xl rounded-2xl overflow-hidden ring-1 ring-zinc-200/50 dark:ring-white/10 flex items-center justify-center">
-              
-              {/* YouTube Player Container */}
-              <div className="w-full h-full pointer-events-none" id="youtube-player"></div>
-              
-              {/* Custom YouTube overlay icon requested by user */}
-              <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-lg sm:rounded-xl shadow-lg flex items-center gap-2 border border-zinc-200/50 dark:border-white/10 pointer-events-auto">
-                 <Youtube className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                 <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">YouTube</span>
-              </div>
-
-              {/* Subtitles Overlay */}
-              {playbackState === 'with_subs' && currentCaption && (
-                <div className="absolute bottom-10 left-0 w-full text-center z-10 pointer-events-none px-4">
-                  <span className="bg-black/70 text-white px-4 py-2 rounded-lg text-lg md:text-2xl font-semibold backdrop-blur-sm inline-block max-w-3xl">
-                    {currentCaption}
-                  </span>
-                </div>
-              )}
-
-              {/* End of 10s Screen / Explanation state */}
-              {playbackState === 'explanation' && (
-                <div 
-                  id="explanation" 
-                  className="absolute inset-0 bg-black/80 backdrop-blur-sm z-20 flex flex-col p-6 animate-in fade-in"
-                >
-                  <div className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto w-full pointer-events-auto mt-12 mb-20">
-                    <h3 className="text-2xl sm:text-3xl font-bold text-white mb-6 text-center">
-                      Explicação Parte a Parte
-                    </h3>
-                    <div className="bg-zinc-900/60 p-6 md:p-8 rounded-2xl border border-zinc-800 backdrop-blur-md text-center shadow-xl w-full">
-                      <p className="text-zinc-300 text-sm sm:text-base md:text-lg leading-relaxed mb-6">
-                        "Aqui entra a explicação detalhada do que foi falado neste trecho do vídeo, focada em gramática, vocabulário e expressões usadas."
-                      </p>
-                      
-                      <div className="pt-6 border-t border-zinc-700/50 space-y-3 text-left">
-                        <span className="text-xs uppercase tracking-wider text-zinc-500 font-semibold block mb-2">Trecho legendado:</span>
-                        {captions.map((c, i) => (
-                           <p key={i} className="text-zinc-300 italic text-sm sm:text-base leading-relaxed">
-                             <span className="text-zinc-600 mr-2 text-xs">{c.start.toFixed(1)}s</span>
-                             "{c.text}"
-                           </p>
-                        ))}
-                        {captions.length === 0 && (
-                           <p className="text-zinc-500 italic text-sm">Nenhuma legenda encontrada nos primeiros 10s.</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Bottom Corners Buttons */}
-                  <div className="absolute bottom-6 left-6 right-6 flex justify-between pointer-events-none">
-                    <button 
-                      onClick={play10Seconds}
-                      className="pointer-events-auto px-5 py-3 bg-white text-black font-semibold rounded-2xl hover:bg-zinc-200 transition-colors shadow-lg flex items-center justify-center gap-2 ring-1 ring-zinc-200"
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                      Repetir 10s
-                    </button>
-                    <button 
-                      onClick={playWithSubtitles}
-                      className="pointer-events-auto px-6 py-3 bg-indigo-600 text-white font-semibold rounded-2xl hover:bg-indigo-700 transition-colors shadow-lg flex items-center justify-center gap-2"
-                    >
-                      <Play className="w-5 h-5" fill="currentColor" />
-                      Continuar
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+        <main className="flex-1 flex flex-col h-screen overflow-hidden animate-in fade-in duration-500 bg-black">
+          
+          {/* YouTube Disclaimer Top Bar */}
+          <div className="w-full flex items-center justify-center sm:justify-start gap-3 p-3 sm:px-8 border-b border-zinc-900 shrink-0 bg-zinc-950">
+            <Youtube className="w-5 h-5 text-red-600 shrink-0" />
+            <p className="text-[10px] sm:text-xs text-zinc-500 font-medium tracking-wide text-center sm:text-left">
+              Este vídeo é incorporado do YouTube. Todos os direitos reservados aos seus criadores.
+            </p>
           </div>
+
+          {/* Content Wrapper */}
+          <div className="flex-1 overflow-y-auto lg:overflow-hidden p-0 lg:p-6 lg:pb-0 w-full">
+             <div className="max-w-[1700px] mx-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-6 lg:gap-8 lg:pb-6">
+                
+                {/* Left Column: Video */}
+                <div className="flex flex-col gap-5 lg:gap-6 w-full mx-auto md:w-[94%] lg:w-full md:mt-4 lg:mt-0 shrink-0 lg:shrink">
+                   <div className="w-full aspect-video bg-zinc-950 md:rounded-2xl overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-b lg:border border-zinc-900 shrink-0">
+                      <div id="youtube-player" className="w-full h-full pointer-events-none absolute inset-0"></div>
+                      
+                      {/* Video Player overlay when stopped */}
+                      {playbackState === 'explanation' && (
+                         <div className="absolute inset-0 bg-black/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                            <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-widest mb-6 uppercase">
+                               Faça um estudo da transcrição
+                            </h3>
+                            <button 
+                               onClick={playWithSubtitles}
+                               className="px-8 py-3.5 bg-white hover:bg-zinc-200 text-black rounded-full font-bold transition-all shadow-lg flex items-center gap-2 transform hover:scale-105 active:scale-95"
+                            >
+                               <Play className="w-5 h-5" fill="currentColor" />
+                               Continuar
+                            </button>
+                         </div>
+                      )}
+
+                      {/* Subtitles Overlay */}
+                      {playbackState === 'with_subs' && currentCaption && (
+                        <div className="absolute bottom-6 sm:bottom-10 left-0 w-full text-center z-10 pointer-events-none px-4">
+                          <span className="bg-black/90 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-base sm:text-xl lg:text-2xl font-bold backdrop-blur-md inline-block max-w-4xl shadow-2xl border border-white/10">
+                            {currentCaption}
+                          </span>
+                        </div>
+                      )}
+                   </div>
+
+                   {/* Description text under video (Desktop) */}
+                   <div className="hidden lg:flex flex-col gap-4 px-2">
+                      <div className="flex items-start justify-between">
+                         <div>
+                           <h2 className="text-[28px] font-bold text-white mb-3 tracking-tight">{videoTitle || "O Despertar do Estudo: Módulo 1"}</h2>
+                           <div className="flex items-center gap-2">
+                              <span className="px-3.5 py-1.5 bg-zinc-900 text-zinc-300 rounded-full text-[11px] font-bold tracking-widest border border-zinc-800 uppercase">Avançado</span>
+                              <span className="px-3.5 py-1.5 bg-zinc-900 text-zinc-300 rounded-full text-[11px] font-bold tracking-widest border border-zinc-800 uppercase">História da Arte</span>
+                           </div>
+                         </div>
+                      </div>
+                      <p className="text-zinc-500 text-[15px] mt-2 border-t border-zinc-900 pt-4">
+                         Referência: <a href={`https://youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" className="text-zinc-400 hover:text-white transition-colors font-medium">{videoTitle}</a> por <span className="text-zinc-400">{channelName}</span>
+                      </p>
+                   </div>
+                   
+                   {/* Mobile reference */}
+                   <div className="lg:hidden px-5 mb-2 flex justify-between items-center text-xs text-zinc-500">
+                     <span className="truncate">Ref: {channelName}</span>
+                   </div>
+                </div>
+
+                {/* Right Column (Desktop) / Bottom Column (Mobile): Explanation and Transcript */}
+                <div className="flex flex-col gap-6 px-4 md:px-6 lg:px-0 pb-[120px] lg:pb-0 lg:h-full lg:overflow-hidden relative">
+                   {playbackState !== 'initial' && (
+                     <>
+                       <div className="flex-1 lg:overflow-hidden flex flex-col min-h-[400px]">
+                          <TranscriptPanel captions={captions} currentCaptionText={currentCaption} />
+                       </div>
+                     </>
+                   )}
+                </div>
+
+             </div>
+          </div>
+
+          <MobileBottomBar onRepeat={play10Seconds} onContinue={playWithSubtitles} />
         </main>
       </div>
     </SidebarProvider>

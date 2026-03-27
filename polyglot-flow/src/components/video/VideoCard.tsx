@@ -5,13 +5,21 @@ import { Play } from "lucide-react";
 interface VideoCardProps {
   videoId: string;
   title: string;
+  timeStart?: number;
+  timeEnd?: number;
 }
 
-export function VideoCard({ videoId, title }: VideoCardProps) {
+export function VideoCard({ videoId, title, timeStart, timeEnd }: VideoCardProps) {
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
+  const params = new URLSearchParams();
+  if (timeStart !== undefined) params.set('t', String(timeStart));
+  if (timeEnd !== undefined) params.set('end', String(timeEnd));
+  const qs = params.toString();
+  const linkTo = `/video/${videoId}${qs ? `?${qs}` : ''}`;
   
   return (
-    <Link to={`/video/${videoId}`} className="block h-full group">
+    <Link to={linkTo} className="block h-full group">
       <Card className="overflow-hidden bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors h-full flex flex-col shadow-sm hover:shadow-md">
         <div className="relative w-full aspect-video bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
           <img 
