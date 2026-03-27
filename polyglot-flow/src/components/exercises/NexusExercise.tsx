@@ -45,9 +45,9 @@ export function NexusExercise({ data, onComplete }: NexusExerciseProps) {
       {/* Header */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent italic tracking-tight">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent italic tracking-tight">
                 NEXUSCONNECT
-            </h2>
+            </h3>
             <div className="flex items-center gap-2 mt-1 opacity-70">
                 <Brain className="w-4 h-4 text-purple-400" />
                 <span className="text-xs uppercase font-mono tracking-widest text-purple-300">
@@ -78,47 +78,47 @@ export function NexusExercise({ data, onComplete }: NexusExerciseProps) {
         </div>
 
         {/* Central Node */}
-        <div className="relative z-20 w-40 h-40 md:w-56 md:h-56 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 shadow-[0_0_60px_-10px_rgba(34,211,238,0.4)] flex items-center justify-center transform transition-transform hover:scale-105 duration-500 group animate-float">
+        <div className="relative z-20 w-32 h-32 md:w-56 md:h-56 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 shadow-[0_0_60px_-10px_rgba(34,211,238,0.4)] flex items-center justify-center transform transition-transform hover:scale-105 duration-500 group animate-float">
              <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-ping opacity-20" />
-             <div className="text-center z-10 p-4">
-                <h3 className="text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight">
+             <div className="text-center z-10 p-2 md:p-4">
+                <h3 className="text-xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight break-all">
                     {data.palavra_central}
                 </h3>
-                <Star className="w-4 h-4 text-yellow-300 mx-auto mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <Star className="w-3 h-3 md:w-4 md:h-4 text-yellow-300 mx-auto mt-1 md:mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
              </div>
         </div>
 
         {/* Option A (Left) */}
-        <div className="absolute left-0 md:left-10 top-1/2 -translate-y-1/2 z-10 w-40 h-40 md:w-56 md:h-56">
+        <div className="absolute left-0 md:left-10 top-1/2 -translate-y-1/2 z-10 w-24 h-32 md:w-56 md:h-56">
              <button
                 onClick={() => handleSelect(data.opcoes[0])}
                 disabled={isFinished}
                 className={cn(
-                    "w-full h-full rounded-3xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 hover:bg-card/30 backdrop-blur-sm",
+                    "w-full h-full rounded-2xl md:rounded-3xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 hover:bg-card/30 backdrop-blur-sm p-1 md:p-4",
                     selectedOption === data.opcoes[0].texto 
                         ? (data.opcoes[0].correta ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10")
                         : "border-white/10 text-muted-foreground hover:border-purple-500/50 hover:text-white"
                 )}
              >
-                <span className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Opção A</span>
-                <span className="text-xl md:text-2xl font-bold">{data.opcoes[0].texto}</span>
+                <span className="text-[10px] md:text-xs uppercase tracking-widest text-muted-foreground mb-1 md:mb-2 text-center">Opção A</span>
+                <span className="text-sm md:text-2xl font-bold text-center break-words">{data.opcoes[0].texto}</span>
              </button>
         </div>
 
         {/* Option B (Right) */}
-        <div className="absolute right-0 md:right-10 top-1/2 -translate-y-1/2 z-10 w-40 h-40 md:w-56 md:h-56">
+        <div className="absolute right-0 md:right-10 top-1/2 -translate-y-1/2 z-10 w-24 h-32 md:w-56 md:h-56">
              <button
                 onClick={() => handleSelect(data.opcoes[1])}
                 disabled={isFinished}
                 className={cn(
-                    "w-full h-full rounded-3xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 hover:bg-card/30 backdrop-blur-sm",
+                    "w-full h-full rounded-2xl md:rounded-3xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 hover:bg-card/30 backdrop-blur-sm p-1 md:p-4",
                     selectedOption === data.opcoes[1].texto 
                         ? (data.opcoes[1].correta ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10")
                         : "border-white/10 text-muted-foreground hover:border-purple-500/50 hover:text-white"
                 )}
              >
-                <span className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Opção B</span>
-                <span className="text-xl md:text-2xl font-bold">{data.opcoes[1].texto}</span>
+                <span className="text-[10px] md:text-xs uppercase tracking-widest text-muted-foreground mb-1 md:mb-2 text-center">Opção B</span>
+                <span className="text-sm md:text-2xl font-bold text-center break-words">{data.opcoes[1].texto}</span>
              </button>
         </div>
 

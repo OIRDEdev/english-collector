@@ -6,6 +6,7 @@ import type { LoginRequest, LoginResponse, GoogleAuthRequest, User } from '@/typ
 const API_BASE_URL = '/api';
 // Token Storage Keys - Only User is stored in localStorage now
 const USER_KEY = 'polyglotflow_user';
+const EXTENSION_TOKEN_KEY = 'extension_token';
 
 class ApiService {
   private static instance: ApiService;
@@ -36,8 +37,17 @@ class ApiService {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor - No longer need to manually add token
-    // browser handles cookies automatically
+    // Request interceptor - Add extension token to Authorization header
+    this.axiosInstance.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem(EXTENSION_TOKEN_KEY);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
 
     // Response interceptor - handle 401 and refresh token
     this.axiosInstance.interceptors.response.use(
@@ -93,10 +103,16 @@ class ApiService {
   }
 
   private async refreshAccessToken(): Promise<void> {
-    await this.axiosInstance.post('/auth/refresh');
+    const response = await this.axiosInstance.post<any>('/auth/refresh');
+    if (response.data?.extension_token) {
+      localStorage.setItem(EXTENSION_TOKEN_KEY, response.data.extension_token);
+    }
   }
 
-  // Token Management - Removed as cookies are handled by browser
+  // Token Management
+  public getExtensionToken(): string | null {
+    return localStorage.getItem(EXTENSION_TOKEN_KEY);
+  }
 
   public getUser(): User | null {
     const userStr = localStorage.getItem(USER_KEY);
@@ -119,8 +135,6 @@ class ApiService {
   }
 
   public isAuthenticated(): boolean {
-    // We can't know for sure without checking server, but for UI sync we check if valid user object exists
-    // However, best practice is to rely on checkAuth on mount.
     return !!this.getUser();
   }
 
@@ -131,25 +145,33 @@ class ApiService {
         console.error("Logout failed", e);
     } finally {
         localStorage.removeItem(USER_KEY);
-        // O React Router (via AuthContext e ProtectedRoute) cuidará do redirecionamento
-        // emitindo uma mudança de estado, em vez de forçar um reload.
+        localStorage.removeItem(EXTENSION_TOKEN_KEY);
     }
   }
 
   // Auth Endpoints
   public async login(credentials: LoginRequest): Promise<void> {
-    await this.axiosInstance.post('/auth/login', credentials);
+    const response = await this.axiosInstance.post<any>('/auth/login', credentials);
+    if (response.data?.extension_token) {
+      localStorage.setItem(EXTENSION_TOKEN_KEY, response.data.extension_token);
+    }
     // After login, fetch user info
     await this.checkAuth();
   }
 
   public async loginWithGoogle(credential: string): Promise<void> {
-    await this.axiosInstance.post('/auth/google', { credential });
+    const response = await this.axiosInstance.post<any>('/auth/google', { credential });
+    if (response.data?.extension_token) {
+      localStorage.setItem(EXTENSION_TOKEN_KEY, response.data.extension_token);
+    }
     await this.checkAuth();
   }
 
   public async register(data: { nome: string; email: string; senha: string }): Promise<void> {
-    await this.axiosInstance.post('/auth/register', data);
+    const response = await this.axiosInstance.post<any>('/auth/register', data);
+    if (response.data?.extension_token) {
+      localStorage.setItem(EXTENSION_TOKEN_KEY, response.data.extension_token);
+    }
     await this.checkAuth();
   }
 
