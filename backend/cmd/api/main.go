@@ -106,7 +106,7 @@ func main() {
 	settingsHandler := settings.NewHandler(settingsService)
 
 	// Initialize youtube module
-	youtubeService := youtube.NewService(db)
+	youtubeService := youtube.NewService(db, aiService)
 	youtubeHandler := youtube.NewHandler(youtubeService)
 
 	// Initialize handler

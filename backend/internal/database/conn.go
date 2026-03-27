@@ -39,7 +39,6 @@ func Connect() (*pgxpool.Pool, error) {
 				ipv4 = append(ipv4, ip.String())
 			}
 		}
-		log.Printf("Resolved %s to %v\n", host, ipv4)
 		return ipv4, nil
 	}
 

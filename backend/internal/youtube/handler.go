@@ -3,6 +3,7 @@ package youtube
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -25,8 +26,19 @@ func (h *Handler) GetTranscript(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	lang := r.URL.Query().Get("lang")
+	native := r.URL.Query().Get("native")
+	startStr := r.URL.Query().Get("start")
+	endStr := r.URL.Query().Get("end")
 
-	transcript, err := h.service.GetTranscript(r.Context(), videoID, lang)
+	var start, end float64
+	if startStr != "" {
+		start, _ = strconv.ParseFloat(startStr, 64)
+	}
+	if endStr != "" {
+		end, _ = strconv.ParseFloat(endStr, 64)
+	}
+
+	transcript, err := h.service.GetTranscript(r.Context(), videoID, lang, native, start, end)
 	if err != nil {
 		http.Error(w, "failed to fetch transcript: "+err.Error(), http.StatusInternalServerError)
 		return
