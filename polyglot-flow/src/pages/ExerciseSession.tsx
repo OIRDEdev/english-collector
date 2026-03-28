@@ -1,20 +1,28 @@
-import { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { X, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ClarityExercise } from "@/components/exercises/ClarityExercise";
-import { EchoExercise } from "@/components/exercises/EchoExercise";
-import { NexusExercise } from "@/components/exercises/NexusExercise";
-import { LogicBreakerExercise } from "@/components/exercises/LogicBreakerExercise";
-import { KeyBurstExercise } from "@/components/exercises/KeyBurstExercise";
-import { HistoriaExercise } from "@/components/exercises/HistoriaExercise";
-import { ChainExercise } from "@/components/exercises/ChainExercise";
-import { WordMemoryExercise } from "@/components/exercises/WordMemoryExercise";
-import { ConnectionExercise } from "@/components/exercises/ConnectionExercise";
 import { ResultModal } from "@/components/exercises/ResultModal";
 import { ExitModal } from "@/components/exercises/ExitModal";
 import { exerciseService } from "@/services/exerciseService";
 import type { ExerciseItem } from "@/types/api";
+
+// ─── Lazy-loaded exercise registry — each chunk is only fetched when needed ───
+const componentsMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
+    echo:       React.lazy(() => import("@/components/exercises/EchoExercise").then(m => ({ default: m.EchoExercise }))),
+    nexus:      React.lazy(() => import("@/components/exercises/NexusExercise").then(m => ({ default: m.NexusExercise }))),
+    key:        React.lazy(() => import("@/components/exercises/KeyBurstExercise").then(m => ({ default: m.KeyBurstExercise }))),
+    historia:   React.lazy(() => import("@/components/exercises/HistoriaExercise").then(m => ({ default: m.HistoriaExercise }))),
+    chain:      React.lazy(() => import("@/components/exercises/ChainExercise").then(m => ({ default: m.ChainExercise }))),
+    wordmemory: React.lazy(() => import("@/components/exercises/WordMemoryExercise").then(m => ({ default: m.WordMemoryExercise }))),
+    connection: React.lazy(() => import("@/components/exercises/ConnectionExercise").then(m => ({ default: m.ConnectionExercise }))),
+};
+
+const ExerciseFallback = () => (
+    <div className="flex items-center justify-center h-40">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+);
 
 const ExerciseSession = () => {
     const { type, id } = useParams();
@@ -106,7 +114,11 @@ const ExerciseSession = () => {
     };
 
     const handleExitConfirm = () => {
-        navigate('/exercises');
+        if (type === "leituraimersa") {
+            navigate('/historia');
+        } else {
+            navigate('/exercises');
+        }
     };
 
     const handleRetry = () => {
@@ -141,7 +153,13 @@ const ExerciseSession = () => {
             <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
                 <div className="text-center">
                     <h2 className="text-xl font-bold mb-2">Exercício não encontrado</h2>
-                    <Button onClick={() => navigate('/exercises')} variant="outline">
+                    <Button onClick={() => {
+                        if (type === "leituraimersa") {
+                            navigate('/historia');
+                        } else {
+                            navigate('/exercises');
+                        }
+                    }} variant="outline">
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Voltar para lista
                     </Button>
@@ -150,28 +168,20 @@ const ExerciseSession = () => {
         );
     }
 
-    // Map catalog name to component key
+    // Resolve component key from catalog name
     const catalogName = exercise.tipo.toLowerCase().replace(/\s+/g, '');
-    
-    // Map catalog names to component identifiers
-    const getComponentKey = (name: string): string => {
-        const map: Record<string, string> = {
-            "claritysprint": "clarity",
-            "echowrite": "echo",
-            "nexusconnect": "nexus",
-            "logicbreaker": "logic",
-            "keyburst": "key",
-            "leituraimersa": "historia",
-            "sentencechain": "chain",
-            "wordmemory": "wordmemory",
-            "connection": "connection",
-            // Fallback: try the raw name
-        };
-        return map[name] || name;
+    const keyMap: Record<string, string> = {
+        echowrite:     "echo",
+        nexusconnect:  "nexus",
+        keyburst:      "key",
+        leituraimersa: "historia",
+        sentencechain: "chain",
+        wordmemory:    "wordmemory",
+        connection:    "connection",
     };
+    const componentKey = keyMap[catalogName] ?? catalogName;
+    const ActiveComponent = componentsMap[componentKey] ?? null;
 
-    const componentKey = getComponentKey(catalogName);
-    console.log(componentKey);
     return (
         <div className="min-h-screen bg-background relative flex flex-col">
             {/* Top Navigation Bar */}
@@ -179,95 +189,25 @@ const ExerciseSession = () => {
                 <Button variant="ghost" size="icon" onClick={handleExitRequest} className="hover:bg-destructive/10 hover:text-destructive rounded-full">
                     <X className="w-6 h-6" />
                 </Button>
-                
                 <div className="text-xs font-mono text-muted-foreground opacity-50 uppercase tracking-widest">
                     {exercise.tipo}
                 </div>
-                
-                <div className="w-10" /> {/* Spacer for balance */}
+                <div className="w-10" />
             </div>
 
-            {/* Exercise Content */}
+            {/* Exercise Content — lazy loaded per exercise type */}
             <main className="flex-1 flex items-center justify-center p-4 pt-20 animate-in fade-in zoom-in-95 duration-500">
-                {componentKey === "clarity" && (
-                    <ClarityExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-                
-                {componentKey === "echo" && (
-                    <EchoExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-
-                {componentKey === "nexus" && (
-                    <NexusExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-
-                {componentKey === "logic" && (
-                    <LogicBreakerExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-
-                {componentKey === "key" && (
-                    <KeyBurstExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-
-                {componentKey === "historia" && (
-                    <HistoriaExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-
-                {componentKey === "chain" && (
-                    <ChainExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-
-                {componentKey === "wordmemory" && (
-                    <WordMemoryExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
-                )}
-
-                {componentKey === "connection" && (
-                    <ConnectionExercise 
-                        key={showResult ? 'completed' : 'active'}
-                        data={exercise.data} 
-                        onComplete={handleComplete} 
-                        onExit={handleExitRequest} 
-                    />
+                {ActiveComponent ? (
+                    <Suspense fallback={<ExerciseFallback />}>
+                        <ActiveComponent
+                            key={showResult ? 'completed' : 'active'}
+                            data={exercise.data}
+                            onComplete={handleComplete}
+                            onExit={handleExitRequest}
+                        />
+                    </Suspense>
+                ) : (
+                    <p className="text-muted-foreground">Tipo de exercício desconhecido: {componentKey}</p>
                 )}
             </main>
 
@@ -276,7 +216,13 @@ const ExerciseSession = () => {
                 open={showResult} 
                 score={score} 
                 onRetry={handleRetry} 
-                onExit={() => navigate('/exercises')}
+                onExit={() => {
+                    if (type === "leituraimersa") {
+                        navigate('/historia');
+                    } else {
+                        navigate('/exercises');
+                    }
+                }}
                 onNext={handleNext}
                 hasNext={!!nextId}
             />

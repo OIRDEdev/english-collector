@@ -1,6 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { Youtube, Play } from "lucide-react";
+import { Youtube, Play, ChevronLeft } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { youtubeService, TranslationSegment } from "@/services/youtubeService";
@@ -207,11 +207,21 @@ export default function VideoPlayer() {
         <main className="flex-1 flex flex-col h-screen overflow-hidden animate-in fade-in duration-500 bg-black">
           
           {/* YouTube Disclaimer Top Bar */}
-          <div className="w-full flex items-center justify-center sm:justify-start gap-3 p-3 sm:px-8 border-b border-zinc-900 shrink-0 bg-zinc-950">
-            <Youtube className="w-5 h-5 text-red-600 shrink-0" />
-            <p className="text-[10px] sm:text-xs text-zinc-500 font-medium tracking-wide text-center sm:text-left">
-              Este vídeo é incorporado do YouTube. Todos os direitos reservados aos seus criadores.
-            </p>
+          <div className="w-full flex items-center justify-between sm:justify-start gap-4 p-3 sm:px-8 border-b border-zinc-900 shrink-0 bg-zinc-950">
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-1.5 hover:bg-zinc-900 rounded-lg transition-colors text-zinc-400 hover:text-white flex items-center gap-1 group"
+            >
+              <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+              <span className="text-xs font-medium hidden sm:block">Voltar</span>
+            </button>
+
+            <div className="flex items-center gap-3">
+              <Youtube className="w-5 h-5 text-red-600 shrink-0" />
+              <p className="text-[10px] sm:text-xs text-zinc-500 font-medium tracking-wide text-center sm:text-left">
+                Este vídeo é incorporado do YouTube. Todos os direitos reservados aos seus criadores.
+              </p>
+            </div>
           </div>
 
           {/* Content Wrapper */}
