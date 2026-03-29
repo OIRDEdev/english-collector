@@ -17,6 +17,7 @@ import Onboarding from "./pages/Onboarding";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
 import { ProtectedRoute, PublicRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/anki" element={<Anki />} />
               <Route path="/conversation" element={<Conversation />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

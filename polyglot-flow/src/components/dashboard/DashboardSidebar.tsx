@@ -13,7 +13,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Languages, Settings, Shield, BarChart3, Layers, Brain, GalleryVerticalEnd, MessageCircle, BookOpen, Video } from "lucide-react";
-import { SettingsModal } from "@/components/settings/SettingsModal";
 
 interface Grupo {
   nome: string;
@@ -34,7 +33,6 @@ export function DashboardSidebar({
   onGroupSelect,
 }: DashboardSidebarProps) {
   const location = useLocation();
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
@@ -173,12 +171,11 @@ export function DashboardSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setSettingsOpen(true)}
-                  className="cursor-pointer"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>Preferências</span>
+                <SidebarMenuButton asChild isActive={location.pathname === '/settings'}>
+                  <Link to="/settings" className="cursor-pointer">
+                    <Settings className="w-4 h-4" />
+                    <span>Preferências</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -198,8 +195,6 @@ export function DashboardSidebar({
         </div>
       </SidebarFooter>
     </Sidebar>
-
-    <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }
