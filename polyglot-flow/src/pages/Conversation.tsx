@@ -338,6 +338,13 @@ const Conversation = () => {
         <div className="min-h-screen flex w-full bg-background">
           <DashboardSidebar grupos={[]} activeGroup={null} onGroupSelect={() => {}} totalPhrases={0} />
           <main className="flex-1 flex items-center justify-center relative overflow-hidden">
+            {/* Mobile Menu Trigger for Landing Screen */}
+            <div className="absolute top-4 left-4 z-20 md:hidden">
+              <SidebarTrigger>
+                <Menu className="h-10 w-10" />
+              </SidebarTrigger>
+            </div>
+
             <div className="absolute inset-0">
               <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px] animate-pulse" />
               <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: "1s" }} />
@@ -395,17 +402,21 @@ const Conversation = () => {
         <main className="flex-1 flex flex-col relative max-h-screen">
           <header className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10 flex-shrink-0">
             <div className="flex items-center gap-4">
-              <SidebarTrigger className="md:hidden"><Menu className="h-5 w-5" /></SidebarTrigger>
-              <div>
+              <SidebarTrigger className="mr-6">
+                <Menu className="h-10 w-10" />
+              </SidebarTrigger>
+              <div className="hidden md:block">
                 <h1 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <MessageCircle className="w-4 h-4 text-emerald-400" /> English Practice
                 </h1>
                 <p className="text-xs text-muted-foreground">Live Streaming</p>
               </div>
             </div>
-            <button onClick={handleRestart} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all">
-              <RotateCcw className="w-4 h-4" />
-            </button>
+            <div className="hidden md:block">
+              <button onClick={handleRestart} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all">
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
           </header>
 
           <div className="flex-1 overflow-auto px-6 py-8">

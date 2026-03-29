@@ -38,7 +38,7 @@ export function DashboardSidebar({
 
   return (
     <>
-    <Sidebar className="border-r border-border/50">
+    <Sidebar collapsible="icon" className="border-r border-border/50">
       <SidebarHeader className="border-b border-border/50 p-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
@@ -65,12 +65,12 @@ export function DashboardSidebar({
                 >
                   {location.pathname !== '/dashboard' ? (
                     <Link to="/dashboard">
-                      <Layers className="w-4 h-4" />
+                      <Layers className="w-10 h-10" />
                       <span>Todas as Frases</span>
                     </Link>
                   ) : (
                     <>
-                      <Layers className="w-4 h-4" />
+                      <Layers className="w-10 h-10" />
                       <span>Todas as Frases</span>
                     </>
                   )}

@@ -94,7 +94,7 @@ const Video = () => {
         <main className="flex-1 flex flex-col animate-in fade-in duration-500">
           {/* Header */}
           <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-6 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-10">
-            <SidebarTrigger className="mr-4 md:hidden">
+            <SidebarTrigger className="mr-4">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
             <div className="flex items-center gap-3 text-zinc-900 dark:text-zinc-50">

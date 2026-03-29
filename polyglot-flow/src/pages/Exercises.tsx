@@ -99,7 +99,7 @@ const Exercises = () => {
           {/* Header */}
           <header className="h-16 border-b border-border/50 flex items-center px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10 justify-between">
             <div className="flex items-center">
-              <SidebarTrigger className="mr-4 md:hidden">
+              <SidebarTrigger className="mr-4">
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
               <div className="flex items-center gap-3 text-foreground">
